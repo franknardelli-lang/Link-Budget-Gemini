@@ -19,7 +19,7 @@ class LinkBudgetCalculator(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Link Budget Distance Calculator")
-        self.geometry("1050x600")
+        self.geometry("1050x700")
         self.resizable(True, True)
 
         # Style configuration
@@ -61,47 +61,40 @@ class LinkBudgetCalculator(tk.Tk):
 
         # Inputs with +/- steppers
         stepper_inputs = {
-            "Transmit Power (dBm)": "20",
-            "Transmit Antenna Gain (dBi)": "2",
-            "Transmit Cable Loss (dB)": "1",
-            "Receiver Antenna Gain (dBi)": "2",
-            "Receiver Cable Loss (dB)": "1",
-            "Receiver Sensitivity (dBm)": "-95",
-        }
-        # Plain entry inputs
-        plain_inputs = {
-            "Frequency (MHz)": "2400",
+            # Label: (Default Value, Increment Step)
+            "Transmit Power (dBm)": ("20", 0.2),
+            "Transmit Antenna Gain (dBi)": ("2", 0.2),
+            "Transmit Cable Loss (dB)": ("1", 0.2),
+            "Frequency (MHz)": ("2400", 10.0),
+            "Receiver Antenna Gain (dBi)": ("2", 0.2),
+            "Receiver Cable Loss (dB)": ("1", 0.2),
+            "Fade Margin (dB)": ("3", 0.2),
+            "Misc. Losses (dB)": ("0", 0.2),
+            "Receiver Sensitivity (dBm)": ("-95", 0.2),
         }
 
         # --- Create Input Widgets ---
         row_counter = 0
-        all_inputs = {**stepper_inputs, **plain_inputs}
-
-        for label_text, default_value in all_inputs.items():
+        for label_text, (default_value, step) in stepper_inputs.items():
             label = ttk.Label(input_frame, text=label_text)
             label.grid(row=row_counter, column=0, sticky="w", padx=5, pady=5)
 
             var = tk.StringVar(value=default_value)
             self.input_vars[label_text] = var
 
-            if label_text in stepper_inputs:
-                # Create a frame to hold entry and buttons
-                stepper_frame = ttk.Frame(input_frame)
-                stepper_frame.grid(row=row_counter, column=1, sticky="e")
+            # Create a frame to hold entry and buttons
+            stepper_frame = ttk.Frame(input_frame)
+            stepper_frame.grid(row=row_counter, column=1, sticky="e")
 
-                entry = ttk.Entry(stepper_frame, textvariable=var, width=10)
-                entry.bind("<KeyRelease>", self._on_input_change)
-                entry.pack(side=tk.LEFT, padx=(0, 5))
+            entry = ttk.Entry(stepper_frame, textvariable=var, width=10)
+            entry.bind("<KeyRelease>", self._on_input_change)
+            entry.pack(side=tk.LEFT, padx=(0, 5))
 
-                # Use a lambda to capture the `var` for each button
-                plus_button = ttk.Button(stepper_frame, text="+", width=2, style="Small.TButton", command=lambda v=var: self._increment_value(v, 0.2))
-                plus_button.pack(side=tk.LEFT)
-                minus_button = ttk.Button(stepper_frame, text="-", width=2, style="Small.TButton", command=lambda v=var: self._increment_value(v, -0.2))
-                minus_button.pack(side=tk.LEFT)
-            else: # For plain inputs like Frequency
-                entry = ttk.Entry(input_frame, textvariable=var, width=15)
-                entry.bind("<KeyRelease>", self._on_input_change)
-                entry.grid(row=row_counter, column=1, sticky="e", padx=5, pady=5)
+            # Use a lambda to capture the `var` and `step` for each button
+            plus_button = ttk.Button(stepper_frame, text="+", width=2, style="Small.TButton", command=lambda v=var, s=step: self._increment_value(v, s))
+            plus_button.pack(side=tk.LEFT)
+            minus_button = ttk.Button(stepper_frame, text="-", width=2, style="Small.TButton", command=lambda v=var, s=step: self._increment_value(v, -s))
+            minus_button.pack(side=tk.LEFT)
 
             row_counter += 1
 
@@ -172,7 +165,11 @@ class LinkBudgetCalculator(tk.Tk):
         try:
             current_value = float(var.get())
             new_value = current_value + amount
-            var.set(f"{new_value:.1f}")
+            # Format as integer if the step is a whole number, otherwise as float
+            if amount % 1 == 0:
+                var.set(f"{new_value:.0f}")
+            else:
+                var.set(f"{new_value:.1f}")
             self.calculate_distance()
         except ValueError:
             # Handle cases where the entry is empty or not a number
@@ -236,6 +233,8 @@ class LinkBudgetCalculator(tk.Tk):
             freq_mhz = float(self.input_vars["Frequency (MHz)"].get())
             g_rx = float(self.input_vars["Receiver Antenna Gain (dBi)"].get())
             l_rx = float(self.input_vars["Receiver Cable Loss (dB)"].get())
+            l_fade = float(self.input_vars["Fade Margin (dB)"].get())
+            l_misc = float(self.input_vars["Misc. Losses (dB)"].get())
             p_rx_sensitivity = float(self.input_vars["Receiver Sensitivity (dBm)"].get())
             n = self.fspl_exponent_var.get()
             model_choice = self.model_choice_var.get()
@@ -252,7 +251,7 @@ class LinkBudgetCalculator(tk.Tk):
             # At max distance, Received Power = Receiver Sensitivity
             # p_rx_sensitivity = p_tx + g_tx + g_rx - l_tx - l_rx - fspl
             # Therefore, max allowable path loss (FSPL) is:
-            max_path_loss = p_tx + g_tx + g_rx - l_tx - l_rx - p_rx_sensitivity
+            max_path_loss = p_tx + g_tx + g_rx - l_tx - l_rx - l_fade - l_misc - p_rx_sensitivity
 
             if max_path_loss < 0:
                 for var in [self.result_km_var, self.result_m_var, self.result_mi_var, self.result_ft_var]:
