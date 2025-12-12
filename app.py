@@ -1,3 +1,40 @@
+"""
+Interactive Link Budget Calculator - Streamlit Web Application
+
+This script provides a web-based interactive calculator for determining the maximum
+communication distance in wireless link budget analysis. It computes path loss and
+distance based on RF parameters including transmit power, antenna gains, cable losses,
+receiver sensitivity, and propagation models.
+
+Key Features:
+- Real-time calculation of maximum communication distance
+- Support for two path loss models:
+  * Classic Model (1 km reference) - for outdoor/long-range links
+  * Log-distance Model (1m reference) - for indoor/short-range analysis
+- Interactive visualization showing impact of path loss exponent on range
+- Multiple unit conversions (kilometers, meters, miles, feet)
+- Adjustable FSPL (Free Space Path Loss) exponent for different environments
+
+How to Run:
+    streamlit run app.py
+
+Usage:
+1. Adjust parameters in the left sidebar:
+   - Transmit power, antenna gains, cable losses
+   - Operating frequency
+   - Receiver sensitivity
+   - Fade margin and miscellaneous losses
+   - FSPL exponent (2.0 for free space, higher for obstructed environments)
+2. Select the appropriate path loss model
+3. View calculated maximum distances in multiple units
+4. Observe the interactive plot showing distance vs. FSPL exponent relationship
+
+Requirements:
+- streamlit
+- numpy
+- matplotlib
+"""
+
 import streamlit as st
 import math
 import numpy as np
