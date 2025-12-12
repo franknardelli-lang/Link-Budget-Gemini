@@ -1,0 +1,51 @@
+{
+  "name": "Link Budget Calculator - Streamlit",
+  "build": {
+    "context": "..",
+    "dockerfile": "Dockerfile"
+  },
+
+  // Configure tool-specific properties
+  "customizations": {
+    "vscode": {
+      // VS Code extensions to install
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "charliermarsh.ruff"
+      ],
+      // VS Code settings
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.formatting.provider": "none",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        }
+      }
+    }
+  },
+
+  // Forward Streamlit port
+  "forwardPorts": [8501],
+
+  // Port attributes
+  "portsAttributes": {
+    "8501": {
+      "label": "Streamlit App",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Use 'postCreateCommand' to run commands after the container is created
+  "postCreateCommand": "pip install -r requirements.txt",
+
+  // Comment out to connect as root instead
+  "remoteUser": "root",
+
+  // Keep container running
+  "shutdownAction": "stopContainer"
+}
