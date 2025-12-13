@@ -39,11 +39,6 @@ import streamlit as st
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import subprocess
-import os
-import os.path
-import webbrowser
-import shlex
 
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
@@ -100,55 +95,28 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
 st.set_page_config(layout="wide")
 st.title("Interactive Link Budget Calculator")
 
-# Documentation button at the top
-if st.button("📚 Documentation"):
-    doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
-    browser = os.environ.get('BROWSER', '').strip()
-    success_msg = "✓ Opening documentation in your default browser..."
-    browser_opened = False
-    
-    try:
-        if browser:
-            # Validate browser command against allowlist for security
-            # Parse browser command safely
-            try:
-                browser_parts = shlex.split(browser)
-            except ValueError:
-                # Invalid shell syntax, fall back to webbrowser
-                browser_parts = []
-            
-            if browser_parts:
-                # Get the basename of the browser executable
-                browser_cmd = os.path.basename(browser_parts[0])
-                
-                # Allowlist of known safe browsers (exact matches only)
-                # Note: xdg-open, open, and start are system launchers that safely
-                # open URLs in the default browser
-                safe_browsers = {'firefox', 'chrome', 'chromium', 'google-chrome', 
-                               'google-chrome-stable', 'safari', 'edge', 'brave', 
-                               'opera', 'vivaldi', 'xdg-open', 'open', 'start'}
-                
-                # Check if the browser command is in the allowlist (exact match)
-                if browser_cmd in safe_browsers:
-                    # Use the $BROWSER environment variable if set (for dev container)
-                    # shell=False is the default but specified explicitly for security
-                    subprocess.Popen(browser_parts + [doc_url], 
-                                    shell=False,
-                                    stdout=subprocess.DEVNULL, 
-                                    stderr=subprocess.DEVNULL)
-                    browser_opened = True
-        
-        # If browser wasn't opened via $BROWSER, use webbrowser module
-        if not browser_opened:
-            # Fallback to webbrowser module for cross-platform support
-            webbrowser.open(doc_url, new=2)  # new=2 opens in a new tab if possible
-        
-        st.success(success_msg)
-        
-    except Exception as e:
-        # Final fallback: provide a clickable link
-        st.error(f"Could not launch browser automatically: {e}")
-        st.markdown(f'[Click here to open documentation]({doc_url})')
+# Documentation button - opens in new tab using HTML/JavaScript
+doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
+
+# Create button and link that opens in new tab
+st.markdown(
+    f'''
+    <a href="{doc_url}" target="_blank" style="text-decoration: none;">
+        <button style="
+            background-color: #0068c9;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 1rem;
+        ">
+            📚 Documentation
+        </button>
+    </a>
+    ''',
+    unsafe_allow_html=True
+)
 
 # --- Sidebar for Inputs ---
 st.sidebar.header("Parameters")
