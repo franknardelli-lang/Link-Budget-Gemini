@@ -95,24 +95,25 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
 st.set_page_config(layout="wide")
 st.title("Interactive Link Budget Calculator")
 
-# Documentation button - opens in new tab using HTML/JavaScript
+# Documentation button - opens in new tab using HTML link styled as button
 doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
 
-# Create button and link that opens in new tab
+# Create styled link that opens in new tab
 st.markdown(
     f'''
-    <a href="{doc_url}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
-        <button style="
-            background-color: #0068c9;
-            color: white;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            font-size: 1rem;
-        " aria-label="Open documentation in new tab">
-            📚 Documentation
-        </button>
+    <a href="{doc_url}" target="_blank" rel="noopener noreferrer" 
+       aria-label="Open documentation in new tab"
+       style="
+           display: inline-block;
+           background-color: #0068c9;
+           color: white;
+           padding: 0.5rem 1rem;
+           border-radius: 0.25rem;
+           text-decoration: none;
+           font-size: 1rem;
+           cursor: pointer;
+       ">
+        📚 Documentation
     </a>
     ''',
     unsafe_allow_html=True
