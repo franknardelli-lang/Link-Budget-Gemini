@@ -101,7 +101,7 @@ doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
 # Create button and link that opens in new tab
 st.markdown(
     f'''
-    <a href="{doc_url}" target="_blank" style="text-decoration: none;">
+    <a href="{doc_url}" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
         <button style="
             background-color: #0068c9;
             color: white;
@@ -110,7 +110,7 @@ st.markdown(
             border-radius: 0.25rem;
             cursor: pointer;
             font-size: 1rem;
-        ">
+        " aria-label="Open documentation in new tab">
             📚 Documentation
         </button>
     </a>
