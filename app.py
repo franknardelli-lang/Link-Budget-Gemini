@@ -105,6 +105,7 @@ if st.button("📚 Documentation"):
     doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
     browser = os.environ.get('BROWSER', '').strip()
     success_msg = "✓ Opening documentation in your default browser..."
+    browser_opened = False
     
     try:
         if browser:
@@ -121,6 +122,8 @@ if st.button("📚 Documentation"):
                 browser_cmd = os.path.basename(browser_parts[0])
                 
                 # Allowlist of known safe browsers (exact matches only)
+                # Note: xdg-open, open, and start are system launchers that safely
+                # open URLs in the default browser
                 safe_browsers = {'firefox', 'chrome', 'chromium', 'google-chrome', 
                                'google-chrome-stable', 'safari', 'edge', 'brave', 
                                'opera', 'vivaldi', 'xdg-open', 'open', 'start'}
@@ -128,22 +131,20 @@ if st.button("📚 Documentation"):
                 # Check if the browser command is in the allowlist (exact match)
                 if browser_cmd in safe_browsers:
                     # Use the $BROWSER environment variable if set (for dev container)
+                    # shell=False is the default but specified explicitly for security
                     subprocess.Popen(browser_parts + [doc_url], 
+                                    shell=False,
                                     stdout=subprocess.DEVNULL, 
                                     stderr=subprocess.DEVNULL)
-                    st.success(success_msg)
-                else:
-                    # Browser not in allowlist, fall back to webbrowser module
-                    webbrowser.open(doc_url, new=2)
-                    st.success(success_msg)
-            else:
-                # Empty or invalid browser command, use webbrowser
-                webbrowser.open(doc_url, new=2)
-                st.success(success_msg)
-        else:
+                    browser_opened = True
+        
+        # If browser wasn't opened via $BROWSER, use webbrowser module
+        if not browser_opened:
             # Fallback to webbrowser module for cross-platform support
             webbrowser.open(doc_url, new=2)  # new=2 opens in a new tab if possible
-            st.success(success_msg)
+        
+        st.success(success_msg)
+        
     except Exception as e:
         # Final fallback: provide a clickable link
         st.error(f"Could not launch browser automatically: {e}")
