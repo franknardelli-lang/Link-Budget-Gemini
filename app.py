@@ -41,7 +41,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import os
+import os.path
 import webbrowser
+import shlex
 
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
@@ -101,30 +103,41 @@ st.title("Interactive Link Budget Calculator")
 # Documentation button at the top
 if st.button("📚 Documentation"):
     doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
-    browser = os.environ.get('BROWSER')
+    browser = os.environ.get('BROWSER', '').strip()
     success_msg = "✓ Opening documentation in your default browser..."
     
     try:
         if browser:
             # Validate browser command against allowlist for security
-            # Split the browser command to handle arguments properly
-            browser_parts = browser.split()
-            browser_cmd = browser_parts[0] if browser_parts else browser
+            # Parse browser command safely
+            try:
+                browser_parts = shlex.split(browser)
+            except ValueError:
+                # Invalid shell syntax, fall back to webbrowser
+                browser_parts = []
             
-            # Allowlist of known safe browsers
-            safe_browsers = ['firefox', 'chrome', 'chromium', 'google-chrome', 
-                           'google-chrome-stable', 'safari', 'edge', 'brave', 
-                           'opera', 'vivaldi', 'xdg-open', 'open', 'start']
-            
-            # Check if the browser command is in the allowlist
-            if any(browser_cmd.endswith(safe) for safe in safe_browsers):
-                # Use the $BROWSER environment variable if set (for dev container)
-                subprocess.Popen([browser, doc_url], 
-                                stdout=subprocess.DEVNULL, 
-                                stderr=subprocess.DEVNULL)
-                st.success(success_msg)
+            if browser_parts:
+                # Get the basename of the browser executable
+                browser_cmd = os.path.basename(browser_parts[0])
+                
+                # Allowlist of known safe browsers (exact matches only)
+                safe_browsers = {'firefox', 'chrome', 'chromium', 'google-chrome', 
+                               'google-chrome-stable', 'safari', 'edge', 'brave', 
+                               'opera', 'vivaldi', 'xdg-open', 'open', 'start'}
+                
+                # Check if the browser command is in the allowlist (exact match)
+                if browser_cmd in safe_browsers:
+                    # Use the $BROWSER environment variable if set (for dev container)
+                    subprocess.Popen(browser_parts + [doc_url], 
+                                    stdout=subprocess.DEVNULL, 
+                                    stderr=subprocess.DEVNULL)
+                    st.success(success_msg)
+                else:
+                    # Browser not in allowlist, fall back to webbrowser module
+                    webbrowser.open(doc_url, new=2)
+                    st.success(success_msg)
             else:
-                # Browser not in allowlist, fall back to webbrowser module
+                # Empty or invalid browser command, use webbrowser
                 webbrowser.open(doc_url, new=2)
                 st.success(success_msg)
         else:
