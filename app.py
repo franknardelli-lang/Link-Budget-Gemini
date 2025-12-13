@@ -41,6 +41,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import subprocess
 import os
+import webbrowser
 
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
@@ -100,18 +101,23 @@ st.title("Interactive Link Budget Calculator")
 # Documentation button at the top
 if st.button("📚 Documentation"):
     doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
-    browser = os.environ.get('BROWSER', 'xdg-open')  # Default to xdg-open on Linux
+    browser = os.environ.get('BROWSER')
     
     try:
-        # Launch browser with the URL
-        subprocess.Popen([browser, doc_url], 
-                        stdout=subprocess.DEVNULL, 
-                        stderr=subprocess.DEVNULL)
-        st.success("✓ Opening documentation in your default browser...")
+        if browser:
+            # Use the $BROWSER environment variable if set (for dev container)
+            subprocess.Popen([browser, doc_url], 
+                            stdout=subprocess.DEVNULL, 
+                            stderr=subprocess.DEVNULL)
+            st.success("✓ Opening documentation in your default browser...")
+        else:
+            # Fallback to webbrowser module for cross-platform support
+            webbrowser.open(doc_url, new=2)  # new=2 opens in a new tab if possible
+            st.success("✓ Opening documentation in your default browser...")
     except Exception as e:
-        # Fallback: provide a clickable link
+        # Final fallback: provide a clickable link
         st.error(f"Could not launch browser automatically: {e}")
-        st.markdown(f'[Click here to open documentation]({doc_url})', unsafe_allow_html=True)
+        st.markdown(f'[Click here to open documentation]({doc_url})')
 
 # --- Sidebar for Inputs ---
 st.sidebar.header("Parameters")
