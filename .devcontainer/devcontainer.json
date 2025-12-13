@@ -4,7 +4,6 @@
     "context": "..",
     "dockerfile": "Dockerfile"
   },
-
   // Configure tool-specific properties
   "customizations": {
     "vscode": {
@@ -28,10 +27,10 @@
       }
     }
   },
-
   // Forward Streamlit port
-  "forwardPorts": [8501],
-
+  "forwardPorts": [
+    8501
+  ],
   // Port attributes
   "portsAttributes": {
     "8501": {
@@ -39,13 +38,13 @@
       "onAutoForward": "notify"
     }
   },
-
   // Use 'postCreateCommand' to run commands after the container is created
   "postCreateCommand": "pip install -r requirements.txt",
-
   // Comment out to connect as root instead
   "remoteUser": "root",
-
   // Keep container running
-  "shutdownAction": "stopContainer"
+  "shutdownAction": "stopContainer",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+  ]
 }
