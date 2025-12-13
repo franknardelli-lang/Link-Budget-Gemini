@@ -102,18 +102,35 @@ st.title("Interactive Link Budget Calculator")
 if st.button("📚 Documentation"):
     doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
     browser = os.environ.get('BROWSER')
+    success_msg = "✓ Opening documentation in your default browser..."
     
     try:
         if browser:
-            # Use the $BROWSER environment variable if set (for dev container)
-            subprocess.Popen([browser, doc_url], 
-                            stdout=subprocess.DEVNULL, 
-                            stderr=subprocess.DEVNULL)
-            st.success("✓ Opening documentation in your default browser...")
+            # Validate browser command against allowlist for security
+            # Split the browser command to handle arguments properly
+            browser_parts = browser.split()
+            browser_cmd = browser_parts[0] if browser_parts else browser
+            
+            # Allowlist of known safe browsers
+            safe_browsers = ['firefox', 'chrome', 'chromium', 'google-chrome', 
+                           'google-chrome-stable', 'safari', 'edge', 'brave', 
+                           'opera', 'vivaldi', 'xdg-open', 'open', 'start']
+            
+            # Check if the browser command is in the allowlist
+            if any(browser_cmd.endswith(safe) for safe in safe_browsers):
+                # Use the $BROWSER environment variable if set (for dev container)
+                subprocess.Popen([browser, doc_url], 
+                                stdout=subprocess.DEVNULL, 
+                                stderr=subprocess.DEVNULL)
+                st.success(success_msg)
+            else:
+                # Browser not in allowlist, fall back to webbrowser module
+                webbrowser.open(doc_url, new=2)
+                st.success(success_msg)
         else:
             # Fallback to webbrowser module for cross-platform support
             webbrowser.open(doc_url, new=2)  # new=2 opens in a new tab if possible
-            st.success("✓ Opening documentation in your default browser...")
+            st.success(success_msg)
     except Exception as e:
         # Final fallback: provide a clickable link
         st.error(f"Could not launch browser automatically: {e}")
