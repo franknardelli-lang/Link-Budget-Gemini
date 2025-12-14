@@ -64,7 +64,7 @@ def calculate_distance_from_pl(max_path_loss, freq_mhz, n, model_choice):
     except (ValueError, ZeroDivisionError):
         return None
 
-def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choice):
+def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choice, x_scale='linear', y_scale='linear'):
     """Creates and returns a matplotlib figure of distance vs. FSPL exponent."""
     fig, ax = plt.subplots(figsize=(6, 4))
 
@@ -85,6 +85,11 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
     ax.set_xlabel("FSPL Path Loss Exponent (n)")
     ax.set_ylabel("Maximum Distance (ft)")
     ax.set_title("Impact of Path Loss Exponent on Range")
+    
+    # Apply scale settings
+    ax.set_xscale(x_scale)
+    ax.set_yscale(y_scale)
+    
     ax.grid(True, which='both', linestyle='--')
     ax.legend()
     fig.tight_layout()
@@ -167,8 +172,20 @@ if dist_km is not None:
     col3.metric("Miles", f"{dist_mi:.2f}")
     col4.metric("Feet", f"{dist_ft:,.2f}")
 
+    # Plot axis scale toggles
+    st.subheader("Plot Settings")
+    toggle_col1, toggle_col2 = st.columns(2)
+    with toggle_col1:
+        x_scale = st.radio("X-axis Scale", ("Linear", "Logarithmic"), index=0, key="x_scale")
+    with toggle_col2:
+        y_scale = st.radio("Y-axis Scale", ("Linear", "Logarithmic"), index=0, key="y_scale")
+    
+    # Convert to matplotlib scale values
+    x_scale_value = 'log' if x_scale == "Logarithmic" else 'linear'
+    y_scale_value = 'log' if y_scale == "Logarithmic" else 'linear'
+
     # Create and display the plot
-    st.pyplot(create_plot(max_pl, freq_mhz, n, dist_ft, model_choice))
+    st.pyplot(create_plot(max_pl, freq_mhz, n, dist_ft, model_choice, x_scale_value, y_scale_value))
 
 else:
     st.warning("Link cannot be established with the current parameters (Path Loss < 0).")
