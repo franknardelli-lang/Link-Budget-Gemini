@@ -123,12 +123,12 @@ st.markdown(
 st.sidebar.header("Parameters")
 
 p_tx = st.sidebar.number_input("Transmit Power (dBm)", value=20.0, step=0.2, format="%.1f")
-g_tx = st.sidebar.number_input("Transmit Antenna Gain (dBi)", value=2.0, step=0.2, format="%.1f")
-l_tx = st.sidebar.number_input("Transmit Cable Loss (dB)", value=1.0, step=0.2, format="%.1f")
+g_tx = st.sidebar.number_input("Transmit Antenna Gain (dBi)", value=0.0, step=0.2, format="%.1f")
+l_tx = st.sidebar.number_input("Transmit Cable Loss (dB)", value=0.0, step=0.2, format="%.1f")
 freq_mhz = st.sidebar.number_input("Frequency (MHz)", value=2400.0, step=10.0, format="%.1f")
-g_rx = st.sidebar.number_input("Receiver Antenna Gain (dBi)", value=2.0, step=0.2, format="%.1f")
-l_rx = st.sidebar.number_input("Receiver Cable Loss (dB)", value=1.0, step=0.2, format="%.1f")
-l_fade = st.sidebar.number_input("Fade Margin (dB)", value=3.0, step=0.2, format="%.1f")
+g_rx = st.sidebar.number_input("Receiver Antenna Gain (dBi)", value=0.0, step=0.2, format="%.1f")
+l_rx = st.sidebar.number_input("Receiver Cable Loss (dB)", value=0.0, step=0.2, format="%.1f")
+l_fade = st.sidebar.number_input("Fade Margin (dB)", value=0.0, step=0.2, format="%.1f")
 l_misc = st.sidebar.number_input("Misc. Losses (dB)", value=0.0, step=0.2, format="%.1f")
 p_rx_sensitivity = st.sidebar.number_input("Receiver Sensitivity (dBm)", value=-95.0, step=0.2, format="%.1f")
 
@@ -138,7 +138,7 @@ st.sidebar.subheader("Path Loss Model")
 model_choice_label = st.sidebar.radio(
     "Select Model:",
     ("Classic Model (1 km reference)", "Log-distance Model (1m reference)"),
-    index=0
+    index=1
 )
 model_choice = "1m" if "1m reference" in model_choice_label else "1km"
 
