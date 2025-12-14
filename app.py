@@ -40,6 +40,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Minimum positive value for log scale compatibility
+MIN_POSITIVE_VALUE = 1e-10
+
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
     return p_tx + g_tx + g_rx - l_tx - l_rx - l_fade - l_misc - p_rx_sensitivity
@@ -76,8 +79,8 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
         if dist_km is not None and dist_km > 0:
             distances_ft.append(dist_km * 1000 * 3.28084)
         else:
-            # Use a very small positive value instead of 0 for log scale compatibility
-            distances_ft.append(1e-10)
+            # Use MIN_POSITIVE_VALUE for log scale compatibility
+            distances_ft.append(MIN_POSITIVE_VALUE)
 
     ax.plot(n_values, distances_ft, label="Max Distance vs. FSPL Exponent")
     if current_dist_ft is not None:
