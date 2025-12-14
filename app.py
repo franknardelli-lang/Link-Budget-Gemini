@@ -40,6 +40,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Minimum positive value for log scale compatibility
+MIN_POSITIVE_VALUE = 1e-10
+
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
     return p_tx + g_tx + g_rx - l_tx - l_rx - l_fade - l_misc - p_rx_sensitivity
@@ -64,7 +67,7 @@ def calculate_distance_from_pl(max_path_loss, freq_mhz, n, model_choice):
     except (ValueError, ZeroDivisionError):
         return None
 
-def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choice):
+def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choice, x_scale='linear', y_scale='linear'):
     """Creates and returns a matplotlib figure of distance vs. FSPL exponent."""
     fig, ax = plt.subplots(figsize=(6, 4))
 
@@ -73,10 +76,11 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
 
     for n_val in n_values:
         dist_km = calculate_distance_from_pl(max_path_loss, freq_mhz, n_val, model_choice)
-        if dist_km is not None:
+        if dist_km is not None and dist_km > 0:
             distances_ft.append(dist_km * 1000 * 3.28084)
         else:
-            distances_ft.append(0)
+            # Use MIN_POSITIVE_VALUE for log scale compatibility
+            distances_ft.append(MIN_POSITIVE_VALUE)
 
     ax.plot(n_values, distances_ft, label="Max Distance vs. FSPL Exponent")
     if current_dist_ft is not None:
@@ -85,6 +89,11 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
     ax.set_xlabel("FSPL Path Loss Exponent (n)")
     ax.set_ylabel("Maximum Distance (ft)")
     ax.set_title("Impact of Path Loss Exponent on Range")
+    
+    # Apply scale settings
+    ax.set_xscale(x_scale)
+    ax.set_yscale(y_scale)
+    
     ax.grid(True, which='both', linestyle='--')
     ax.legend()
     fig.tight_layout()
@@ -167,8 +176,20 @@ if dist_km is not None:
     col3.metric("Miles", f"{dist_mi:.2f}")
     col4.metric("Feet", f"{dist_ft:,.2f}")
 
+    # Plot axis scale toggles
+    st.subheader("Plot Settings")
+    toggle_col1, toggle_col2 = st.columns(2)
+    with toggle_col1:
+        x_scale = st.radio("X-axis Scale", ("Linear", "Logarithmic"), index=0, key="x_scale")
+    with toggle_col2:
+        y_scale = st.radio("Y-axis Scale", ("Linear", "Logarithmic"), index=0, key="y_scale")
+    
+    # Convert to matplotlib scale values
+    x_scale_value = 'log' if x_scale == "Logarithmic" else 'linear'
+    y_scale_value = 'log' if y_scale == "Logarithmic" else 'linear'
+
     # Create and display the plot
-    st.pyplot(create_plot(max_pl, freq_mhz, n, dist_ft, model_choice))
+    st.pyplot(create_plot(max_pl, freq_mhz, n, dist_ft, model_choice, x_scale_value, y_scale_value))
 
 else:
     st.warning("Link cannot be established with the current parameters (Path Loss < 0).")
