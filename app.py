@@ -92,7 +92,7 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
 
 # --- Streamlit App Layout ---
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="centered")
 st.title("Interactive Link Budget Calculator")
 
 # Documentation button - opens in new tab using HTML link styled as button
