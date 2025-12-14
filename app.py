@@ -73,10 +73,11 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
 
     for n_val in n_values:
         dist_km = calculate_distance_from_pl(max_path_loss, freq_mhz, n_val, model_choice)
-        if dist_km is not None:
+        if dist_km is not None and dist_km > 0:
             distances_ft.append(dist_km * 1000 * 3.28084)
         else:
-            distances_ft.append(0)
+            # Use a very small positive value instead of 0 for log scale compatibility
+            distances_ft.append(1e-10)
 
     ax.plot(n_values, distances_ft, label="Max Distance vs. FSPL Exponent")
     if current_dist_ft is not None:
