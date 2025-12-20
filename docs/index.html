@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Comprehensive guide to wireless link budget analysis and RF propagation modeling">
+    <title>Link Budget Calculator - Documentation</title>
+    <style>
+        :root {
+            --primary-color: #0068c9;
+            --text-color: #1e1e1e;
+            --bg-color: #ffffff;
+            --code-bg: #f5f5f5;
+            --border-color: #e0e0e0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: var(--text-color);
+            font-size: 1.3rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+        }
+
+        code {
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+        }
+
+        .equation {
+            background: var(--code-bg);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid var(--primary-color);
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .note {
+            background: #e8f4f8;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        .toc {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            border-radius: 5px;
+            margin: 2rem 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border: none;
+        }
+
+        .toc ul {
+            margin-left: 1.5rem;
+        }
+
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Link Budget Calculator</h1>
+        <p><strong>Comprehensive Guide to Wireless Link Budget Analysis and RF Propagation Modeling</strong></p>
+    </header>
+
+    <nav class="toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#section1">1. Link Budget Fundamentals</a></li>
+            <li><a href="#section2">2. Free-Space Path Loss (FSPL)</a></li>
+            <li><a href="#section3">3. Propagation Models</a></li>
+            <li><a href="#section4">4. Solving for Maximum Range</a></li>
+            <li><a href="#section5">5. Path Loss Exponent Guide</a></li>
+            <li><a href="#section6">6. Worked Examples</a></li>
+            <li><a href="#section7">7. Common Pitfalls</a></li>
+            <li><a href="#section8">8. Model Comparison</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="section1">
+            <h2>1. Link Budget Fundamentals</h2>
+            <p>A <strong>link budget</strong> is an accounting of all gains and losses in a wireless communication system from transmitter to receiver. The fundamental equation is:</p>
+
+            <div class="equation">
+                P_RX = P_TX + G_TX - L_TX - PL + G_RX - L_RX - L_fade - L_misc
+            </div>
+
+            <p>Where:</p>
+            <ul>
+                <li><code>P_RX</code> = Received power (dBm)</li>
+                <li><code>P_TX</code> = Transmit power (dBm)</li>
+                <li><code>G_TX</code> = Transmit antenna gain (dBi)</li>
+                <li><code>L_TX</code> = Transmit cable/connector losses (dB)</li>
+                <li><code>PL</code> = Path loss (dB)</li>
+                <li><code>G_RX</code> = Receive antenna gain (dBi)</li>
+                <li><code>L_RX</code> = Receive cable/connector losses (dB)</li>
+                <li><code>L_fade</code> = Fade margin (dB)</li>
+                <li><code>L_misc</code> = Miscellaneous losses (dB)</li>
+            </ul>
+
+            <p>For a successful link, the received power must exceed the receiver sensitivity:</p>
+            <div class="equation">
+                P_RX ≥ P_RX_sensitivity
+            </div>
+        </section>
+
+        <section id="section2">
+            <h2>2. Free-Space Path Loss (FSPL)</h2>
+            <p>In free space (ideal conditions with no obstacles), path loss follows the <strong>Friis transmission equation</strong>:</p>
+
+            <div class="equation">
+                FSPL(dB) = 20·log₁₀(d) + 20·log₁₀(f) + 20·log₁₀(4π/c)
+            </div>
+
+            <p>For practical engineering calculations with frequency in MHz and distance in km:</p>
+            <div class="equation">
+                FSPL(dB) = 32.44 + 20·log₁₀(f_MHz) + 20·log₁₀(d_km)
+            </div>
+
+            <div class="note">
+                <strong>Note:</strong> The constant 32.44 assumes frequency in MHz and distance in kilometers. Different units require different constants (e.g., 20.2 for frequency in MHz and distance in meters).
+            </div>
+        </section>
+
+        <section id="section3">
+            <h2>3. Propagation Models</h2>
+
+            <h3>3.1 Classic Model (1 km reference)</h3>
+            <p>The classic path loss model extends FSPL with an environment-dependent exponent <code>n</code>:</p>
+            <div class="equation">
+                PL(dB) = 32.44 + 20·log₁₀(f_MHz) + 10·n·log₁₀(d_km)
+            </div>
+            <p>This model implicitly uses 1 km as the reference distance and is common for outdoor/long-range analysis.</p>
+
+            <h3>3.2 Log-Distance Model (1 m reference)</h3>
+            <p>The log-distance model generalizes to any reference distance d₀:</p>
+            <div class="equation">
+                PL(d) = PL(d₀) + 10·n·log₁₀(d/d₀)
+            </div>
+            <p>For d₀ = 1 meter with frequency in MHz:</p>
+            <div class="equation">
+                PL(dB) = (20·log₁₀(f_MHz) - 27.55) + 10·n·log₁₀(d_m)
+            </div>
+            <p>This form is often preferred for indoor/short-range scenarios.</p>
+
+            <div class="warning">
+                <strong>Important:</strong> The choice between models significantly affects range predictions when n ≠ 2. Always verify which reference distance your model uses.
+            </div>
+        </section>
+
+        <section id="section4">
+            <h2>4. Solving for Maximum Range</h2>
+
+            <h3>4.1 Maximum Allowable Path Loss</h3>
+            <p>First, calculate the maximum path loss the link can tolerate:</p>
+            <div class="equation">
+                PL_max = P_TX + G_TX + G_RX - L_TX - L_RX - L_fade - L_misc - P_RX_sensitivity
+            </div>
+
+            <h3>4.2 Distance Calculation (Classic Model)</h3>
+            <div class="equation">
+                d_km = 10^((PL_max - 32.44 - 20·log₁₀(f_MHz)) / (10·n))
+            </div>
+
+            <h3>4.3 Distance Calculation (Log-Distance Model)</h3>
+            <div class="equation">
+                d_m = 10^((PL_max - 20·log₁₀(f_MHz) + 27.55) / (10·n))
+            </div>
+        </section>
+
+        <section id="section5">
+            <h2>5. Path Loss Exponent Guide</h2>
+            <p>The path loss exponent <code>n</code> characterizes the environment:</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Environment</th>
+                        <th>Typical n</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Free space</td>
+                        <td>2.0</td>
+                        <td>Ideal conditions, line-of-sight, no obstacles</td>
+                    </tr>
+                    <tr>
+                        <td>Urban area (outdoor)</td>
+                        <td>2.7 - 3.5</td>
+                        <td>Buildings, reflections, some obstruction</td>
+                    </tr>
+                    <tr>
+                        <td>Suburban area</td>
+                        <td>3.0 - 4.0</td>
+                        <td>Houses, trees, moderate obstruction</td>
+                    </tr>
+                    <tr>
+                        <td>Indoor (office)</td>
+                        <td>3.0 - 4.0</td>
+                        <td>Walls, furniture, multiple floors</td>
+                    </tr>
+                    <tr>
+                        <td>Indoor (factory)</td>
+                        <td>2.0 - 3.0</td>
+                        <td>Large open spaces with metal obstacles</td>
+                    </tr>
+                    <tr>
+                        <td>Dense urban/forest</td>
+                        <td>4.0 - 6.0</td>
+                        <td>Heavy obstruction, multiple reflections</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="section6">
+            <h2>6. Worked Examples</h2>
+
+            <h3>Example 1: Free Space Link at 2.4 GHz</h3>
+            <p><strong>Given:</strong></p>
+            <ul>
+                <li>Transmit power: 20 dBm</li>
+                <li>TX antenna gain: 0 dBi (isotropic)</li>
+                <li>RX antenna gain: 0 dBi</li>
+                <li>Cable losses: 0 dB (both sides)</li>
+                <li>Frequency: 2400 MHz</li>
+                <li>RX sensitivity: -95 dBm</li>
+                <li>Fade margin: 0 dB</li>
+                <li>Path loss exponent: n = 2.0 (free space)</li>
+            </ul>
+
+            <p><strong>Solution:</strong></p>
+            <div class="equation">
+                PL_max = 20 + 0 + 0 - 0 - 0 - 0 - 0 - (-95) = 115 dB
+            </div>
+
+            <p>Using the classic model:</p>
+            <div class="equation">
+                d_km = 10^((115 - 32.44 - 20·log₁₀(2400)) / (10·2))
+                     = 10^((115 - 32.44 - 67.60) / 20)
+                     = 10^(14.96/20)
+                     = 10^0.748
+                     ≈ 5.60 km
+            </div>
+
+            <h3>Example 2: Indoor Link</h3>
+            <p>Same parameters as Example 1, but with n = 3.5 (office environment):</p>
+            <div class="equation">
+                d_m = 10^((115 - 20·log₁₀(2400) + 27.55) / (10·3.5))
+                    = 10^((115 - 67.60 + 27.55) / 35)
+                    = 10^(74.95/35)
+                    = 10^2.141
+                    ≈ 138 meters
+            </div>
+        </section>
+
+        <section id="section7">
+            <h2>7. Common Pitfalls</h2>
+
+            <h3>7.1 Unit Consistency</h3>
+            <div class="warning">
+                <strong>Always verify:</strong>
+                <ul>
+                    <li>Frequency units (MHz vs GHz)</li>
+                    <li>Distance units (m vs km vs miles)</li>
+                    <li>Power units (dBm vs watts)</li>
+                </ul>
+                Mixing units will produce incorrect results by orders of magnitude.
+            </div>
+
+            <h3>7.2 Reference Distance Confusion</h3>
+            <p>The two models produce <strong>different results</strong> for the same n when n ≠ 2. Always know which reference distance your calculation assumes.</p>
+
+            <h3>7.3 Negative Path Loss</h3>
+            <p>If PL_max comes out negative, the link cannot be established with the current parameters. Check:</p>
+            <ul>
+                <li>Is receiver sensitivity realistic?</li>
+                <li>Are losses too high?</li>
+                <li>Is transmit power sufficient?</li>
+            </ul>
+        </section>
+
+        <section id="section8">
+            <h2>8. Model Comparison</h2>
+            <p>The two models remain <strong>parallel curves</strong> when plotted on a log-log scale, separated by exactly:</p>
+            <div class="equation">
+                Δ = 60 - 30n dB
+            </div>
+
+            <p>Key insights:</p>
+            <ul>
+                <li>At n = 2 (free space), both models converge (Δ = 0)</li>
+                <li>For n > 2, the 1m model predicts <em>higher</em> path loss (shorter range) than the 1km model</li>
+                <li>For n < 2 (rare scenarios like waveguides), the 1m model predicts lower path loss</li>
+                <li>The divergence increases linearly with n</li>
+            </ul>
+
+            <div class="note">
+                <strong>Recommendation:</strong> Use the 1km model for outdoor/long-range links and the 1m model for indoor/short-range scenarios. Document your choice clearly in any report or design.
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Link Budget Calculator | <a href="https://github.com/franknardelli-lang/Link-Budget-Gemini" target="_blank">View on GitHub</a></p>
+    </footer>
+</body>
+</html>

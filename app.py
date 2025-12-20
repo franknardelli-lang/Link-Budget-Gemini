@@ -105,7 +105,7 @@ st.set_page_config(layout="centered")
 st.title("Interactive Link Budget Calculator")
 
 # Documentation button - opens in new tab using HTML link styled as button
-doc_url = "https://cozy-starship-8fc0e9.netlify.app/"
+doc_url = "https://victorious-glacier-05b5d831e.2.azurestaticapps.net"
 
 # Create styled link that opens in new tab
 st.markdown(
