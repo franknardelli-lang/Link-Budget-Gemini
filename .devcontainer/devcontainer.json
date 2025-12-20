@@ -39,7 +39,7 @@
     }
   },
   // Use 'postCreateCommand' to run commands after the container is created
-  "postCreateCommand": "git clone https://github.com/franknardelli-lang/dotfiles ~/.dotfiles 2>/dev/null || (cd ~/.dotfiles && git pull) && bash ~/.dotfiles/install.sh && pip install -r requirements.txt",
+  "postCreateCommand": "git clone git@github.com:franknardelli-lang/dotfiles.git ~/.dotfiles 2>/dev/null || (cd ~/.dotfiles && git pull) && bash ~/.dotfiles/install.sh && pip install -r requirements.txt",
   // Comment out to connect as root instead
   "remoteUser": "root",
   // Keep container running
