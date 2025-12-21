@@ -5,3 +5,12 @@ __pycache__/
 .streamlit/
 .DS_Store
 Thumbs.db
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+secrets.json
