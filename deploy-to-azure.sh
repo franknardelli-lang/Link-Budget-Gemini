@@ -6,7 +6,8 @@ IMAGE_NAME="link-budget-calculator"  # Name for your Docker image
 RESOURCE_GROUP="link-budget-rg"  # Azure resource group name
 LOCATION="eastus"  # Azure region
 CONTAINER_APP_NAME="link-budget-app"  # Name for your container app
-CONTAINER_ENV_NAME="link-budget-env"  # Container Apps environment name
+CONTAINER_ENV_NAME="antenna-env"  # Container Apps environment name (using existing)
+CONTAINER_ENV_RESOURCE_GROUP="antenna-tools-rg"  # Resource group where environment exists
 TAG="latest"  # Docker image tag
 
 # Derived variables
@@ -81,19 +82,16 @@ else
     echo "✓ Resource group already exists"
 fi
 
-# Create Container Apps environment if it doesn't exist
+# Check if Container Apps environment exists (in its resource group)
 echo ""
 echo "Checking Container Apps environment..."
-az containerapp env show --name ${CONTAINER_ENV_NAME} --resource-group ${RESOURCE_GROUP} &> /dev/null
+az containerapp env show --name ${CONTAINER_ENV_NAME} --resource-group ${CONTAINER_ENV_RESOURCE_GROUP} &> /dev/null
 if [ $? -ne 0 ]; then
-    echo "Creating Container Apps environment: ${CONTAINER_ENV_NAME}"
-    az containerapp env create \
-        --name ${CONTAINER_ENV_NAME} \
-        --resource-group ${RESOURCE_GROUP} \
-        --location ${LOCATION}
-    echo "✓ Container Apps environment created"
+    echo "ERROR: Container Apps environment '${CONTAINER_ENV_NAME}' not found in resource group '${CONTAINER_ENV_RESOURCE_GROUP}'"
+    echo "Please verify the environment name and resource group"
+    exit 1
 else
-    echo "✓ Container Apps environment already exists"
+    echo "✓ Using existing Container Apps environment: ${CONTAINER_ENV_NAME}"
 fi
 
 # Check if container app exists
@@ -112,10 +110,17 @@ if [ $? -eq 0 ]; then
 else
     # Create new container app
     echo "Creating new container app: ${CONTAINER_APP_NAME}"
+    # Get the environment resource ID since it's in a different resource group
+    ENV_ID=$(az containerapp env show \
+        --name ${CONTAINER_ENV_NAME} \
+        --resource-group ${CONTAINER_ENV_RESOURCE_GROUP} \
+        --query id \
+        --output tsv)
+
     az containerapp create \
         --name ${CONTAINER_APP_NAME} \
         --resource-group ${RESOURCE_GROUP} \
-        --environment ${CONTAINER_ENV_NAME} \
+        --environment ${ENV_ID} \
         --image ${FULL_IMAGE_NAME} \
         --target-port 8501 \
         --ingress external \
