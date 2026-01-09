@@ -6,6 +6,7 @@ set -e # Exit immediately if a command exits with a non-zero status.
 SERVER_USER="alan"
 SERVER_IP="192.168.1.162"
 APP_FOLDER="~/apps/Link-Budget-Gemini" # <-- Updated project folder
+REPO_URL="https://github.com/franknardelli-lang/Link-Budget-Gemini.git"
 IMAGE_NAME="link-budget-app"           # <-- Unique image name
 CONTAINER_NAME="link-budget-container" # <-- Unique container name
 
@@ -18,11 +19,18 @@ echo "🔄 Deploying to Linux Server ($SERVER_IP) using Docker..."
 REMOTE_COMMANDS=$(cat <<EOF
 set -e # Ensure remote script also exits on error
 
-echo "[REMOTE] Changing to app directory: $APP_FOLDER"
-cd $APP_FOLDER
-
-echo "[REMOTE] Pulling latest code from GitHub..."
-git pull
+# Check if the app directory exists, if not, clone the repo
+if [ -d "$APP_FOLDER" ]; then
+  echo "[REMOTE] App directory exists. Pulling latest code..."
+  cd "$APP_FOLDER"
+  git pull
+else
+  # Ensure parent directory exists and clone
+  mkdir -p ~/apps
+  echo "[REMOTE] App directory not found. Cloning repository..."
+  git clone "$REPO_URL" "$APP_FOLDER"
+  cd "$APP_FOLDER"
+fi
 
 echo "[REMOTE] Building Docker image '$IMAGE_NAME'..."
 docker build -t $IMAGE_NAME .
