@@ -105,7 +105,9 @@ if [ $? -eq 0 ]; then
     az containerapp update \
         --name ${CONTAINER_APP_NAME} \
         --resource-group ${RESOURCE_GROUP} \
-        --image ${FULL_IMAGE_NAME}
+        --image ${FULL_IMAGE_NAME} \
+        --min-replicas 0 \
+        --max-replicas 2
     echo "✓ Container app updated"
 else
     # Create new container app
