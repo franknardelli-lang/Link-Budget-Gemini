@@ -1,0 +1,9 @@
+services:
+  link-budget-app:
+    container_name: link-budget-container
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8502:8501"
+    restart: unless-stopped
