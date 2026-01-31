@@ -4,7 +4,7 @@ set -e # Exit immediately if a command exits with a non-zero status.
 
 # Configuration for Link-Budget-Gemini App
 SERVER_USER="alan"
-SERVER_IP="192.168.1.162"
+SERVER_IP="192.168.2.90"
 APP_FOLDER="/opt/stacks/link-budget-gemini" # <-- Dockge-compatible location
 REPO_URL="https://github.com/franknardelli-lang/Link-Budget-Gemini.git"
 

@@ -10,11 +10,11 @@ This guide will help you migrate from the manual Docker deployment to a Docker C
 
 ## 📋 Step 1: One-Time Server Setup
 
-Run these commands **on your server** (192.168.1.162) to create the Dockge directory structure:
+Run these commands **on your server** (192.168.2.90) to create the Dockge directory structure:
 
 ```bash
 # SSH into your server
-ssh alan@192.168.1.162
+ssh alan@192.168.2.90
 
 # Create the stacks directory with proper permissions
 sudo mkdir -p /opt/stacks/link-budget-gemini
@@ -33,7 +33,7 @@ If you want to remove the old manually-created container:
 
 ```bash
 # SSH into your server (if not already connected)
-ssh alan@192.168.1.162
+ssh alan@192.168.2.90
 
 # Stop and remove the old container
 docker stop link-budget-container
@@ -63,17 +63,17 @@ Check that your app is running:
 
 ```bash
 # From your local machine
-curl http://192.168.1.162:8502
+curl http://192.168.2.90:8502
 
 # Or open in browser
-# http://192.168.1.162:8502
+# http://192.168.2.90:8502
 ```
 
 ## 🔍 Step 5: Managing with Dockge
 
 If you're using Dockge's web interface:
 
-1. Open Dockge (usually at `http://192.168.1.162:5001`)
+1. Open Dockge (usually at `http://192.168.2.90:5001`)
 2. You should see `link-budget-gemini` stack in `/opt/stacks`
 3. You can now manage (start/stop/restart) the container from Dockge's UI
 
@@ -97,7 +97,7 @@ sudo chown -R alan:alan /opt/stacks/link-budget-gemini
 ### Container Not Starting
 Check logs:
 ```bash
-ssh alan@192.168.1.162
+ssh alan@192.168.2.90
 cd /opt/stacks/link-budget-gemini
 docker compose logs
 ```
