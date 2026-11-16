@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Interactive Link Budget Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A self-contained, offline interactive link budget calculator. Computes maximum communication distance from transmit power, antenna gains, cable losses, frequency, fade margin and receiver sensitivity using the classic 1 km or log-distance 1 m path loss model." />
+  <style>
+    :root {
+      --fg: #1b1f23;
+      --muted: #57606a;
+      --accent: #0068c9;
+      --border: #e5e7eb;
+      --panel: #f6f8fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--fg);
+      background: #fff;
+    }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; }
+    h1 { font-size: 1.6rem; margin: 0; line-height: 1.25; }
+    h2 { font-size: 1.2rem; margin: 1.75rem 0 .75rem; }
+    h3 { font-size: 1rem; margin: 0 0 .75rem; }
+    .small { color: var(--muted); font-size: .92rem; }
+    .btn {
+      display: inline-block; background: var(--accent); color: #fff; padding: .5rem 1rem;
+      border-radius: .25rem; text-decoration: none; font-size: .95rem; border: none; cursor: pointer;
+    }
+    .btn.secondary { background: #fff; color: var(--fg); border: 1px solid var(--border); }
+    .btn:hover { filter: brightness(1.05); }
+    .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1.5rem; margin-top: 1.25rem; }
+    @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+    .panel { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; background: var(--panel); }
+    .field { display: grid; grid-template-columns: 1fr 110px; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+    .field label { font-size: .9rem; }
+    input[type="number"] {
+      width: 100%; padding: .35rem .45rem; font: inherit; font-size: .9rem;
+      border: 1px solid #cfd4da; border-radius: 6px; background: #fff; color: inherit;
+    }
+    input[type="range"] { width: 100%; }
+    .slider-row { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: .5rem; }
+    .slider-val { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+    fieldset { border: none; margin: 0; padding: 0; }
+    fieldset.group { margin-top: 1rem; border-top: 1px solid var(--border); padding-top: .9rem; }
+    .radio { display: flex; align-items: center; gap: .4rem; font-size: .9rem; margin: .25rem 0; }
+    .results { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+    @media (max-width: 620px) { .results { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .metric { border: 1px solid var(--border); border-radius: 8px; padding: .7rem .8rem; background: #fff; }
+    .metric .label { color: var(--muted); font-size: .85rem; }
+    .metric .value { font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; word-break: break-all; }
+    .scales { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1rem 0 .5rem; }
+    .scales fieldset legend { font-size: .9rem; font-weight: 600; padding: 0; }
+    .scale-opts { display: flex; gap: .9rem; margin-top: .25rem; }
+    .plot-box { border: 1px solid var(--border); border-radius: 8px; padding: .5rem; background: #fff; }
+    canvas { width: 100%; display: block; }
+    .msg { padding: .75rem 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #fed7aa; background: #fff7ed; }
+    .msg.error { border-color: #fecaca; background: #fef2f2; }
+    .msg[hidden] { display: none; }
+    .info { padding: .9rem 1rem; border-radius: 8px; border: 1px solid #bae6fd; background: #f0f9ff; margin-top: 1.5rem; }
+    .info ul { margin: .5rem 0 0; padding-left: 1.2rem; }
+    .info li { margin: .3rem 0; }
+    footer { color: var(--muted); font-size: .9rem; margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+    @media print {
+      .panel, .plot-box, .metric { break-inside: avoid; }
+      .btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Interactive Link Budget Calculator</h1>
+      <p class="small">Single self-contained file &mdash; works offline, no install required.</p>
+    </div>
+    <div>
+      <a class="btn" href="https://victorious-glacier-05b5d831e.2.azurestaticapps.net" target="_blank" rel="noopener noreferrer">📚 Documentation</a>
+      <button type="button" class="btn secondary" id="reset-btn">Reset defaults</button>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <form class="panel" id="params" autocomplete="off">
+      <h3>Parameters</h3>
+
+      <div class="field">
+        <label for="p_tx">Transmit Power (dBm)</label>
+        <input type="number" id="p_tx" step="0.2" value="20" />
+      </div>
+      <div class="field">
+        <label for="g_tx">Transmit Antenna Gain (dBi)</label>
+        <input type="number" id="g_tx" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="l_tx">Transmit Cable Loss (dB)</label>
+        <input type="number" id="l_tx" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="freq_mhz">Frequency (MHz)</label>
+        <input type="number" id="freq_mhz" step="10" value="2400" />
+      </div>
+      <div class="field">
+        <label for="g_rx">Receiver Antenna Gain (dBi)</label>
+        <input type="number" id="g_rx" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="l_rx">Receiver Cable Loss (dB)</label>
+        <input type="number" id="l_rx" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="l_fade">Fade Margin (dB)</label>
+        <input type="number" id="l_fade" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="l_misc">Misc. Losses (dB)</label>
+        <input type="number" id="l_misc" step="0.2" value="0" />
+      </div>
+      <div class="field">
+        <label for="p_rx">Receiver Sensitivity (dBm)</label>
+        <input type="number" id="p_rx" step="0.2" value="-95" />
+      </div>
+
+      <fieldset class="group">
+        <label for="n_exp" class="small"><strong>FSPL Exponent (n)</strong></label>
+        <div class="slider-row">
+          <input type="range" id="n_exp" min="2" max="10" step="0.1" value="2" />
+          <span class="slider-val" id="n_val">2.0</span>
+        </div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend><strong>Path Loss Model</strong></legend>
+        <label class="radio"><input type="radio" name="model" value="1km" /> Classic Model (1 km reference)</label>
+        <label class="radio"><input type="radio" name="model" value="1m" checked /> Log-distance Model (1 m reference)</label>
+      </fieldset>
+    </form>
+
+    <section>
+      <h2 style="margin-top:0">Maximum Communication Distance</h2>
+
+      <div class="msg error" id="error-msg" hidden></div>
+      <div class="msg" id="warn-msg" hidden></div>
+
+      <div class="results" id="results">
+        <div class="metric"><div class="label">Kilometers</div><div class="value" id="out_km">—</div></div>
+        <div class="metric"><div class="label">Meters</div><div class="value" id="out_m">—</div></div>
+        <div class="metric"><div class="label">Miles</div><div class="value" id="out_mi">—</div></div>
+        <div class="metric"><div class="label">Feet</div><div class="value" id="out_ft">—</div></div>
+      </div>
+
+      <div class="scales" id="plot-settings">
+        <fieldset>
+          <legend>X-axis Scale</legend>
+          <div class="scale-opts">
+            <label class="radio"><input type="radio" name="xscale" value="linear" checked /> Linear</label>
+            <label class="radio"><input type="radio" name="xscale" value="log" /> Logarithmic</label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>Y-axis Scale</legend>
+          <div class="scale-opts">
+            <label class="radio"><input type="radio" name="yscale" value="linear" checked /> Linear</label>
+            <label class="radio"><input type="radio" name="yscale" value="log" /> Logarithmic</label>
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="plot-box">
+        <canvas id="plot" height="420" role="img" aria-label="Plot of maximum distance versus FSPL path loss exponent"></canvas>
+      </div>
+
+      <div class="info">
+        <strong>How to Use:</strong>
+        <ul>
+          <li>Adjust the parameters on the left &mdash; results and the plot update automatically.</li>
+          <li><strong>FSPL Exponent (n):</strong> how quickly the signal fades. <code>2.0</code> is ideal free space; higher values represent more obstructed environments (urban, indoors).</li>
+          <li><strong>Path Loss Model:</strong> the reference distance used in the path loss equation. The 1 km model is common for outdoor/long-range links; the 1 m model is often used for indoor/short-range analysis.</li>
+        </ul>
+      </div>
+
+      <footer>
+        Max allowable path loss = P<sub>tx</sub> + G<sub>tx</sub> + G<sub>rx</sub> &minus; L<sub>tx</sub> &minus; L<sub>rx</sub> &minus; fade margin &minus; misc. losses &minus; receiver sensitivity.
+        Distance is then solved from the selected path loss model.
+      </footer>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Mirrors MIN_POSITIVE_VALUE in app.py: keeps non-existent links plottable on a log axis.
+  var MIN_POSITIVE_VALUE = 1e-10;
+  var FT_PER_KM = 1000 * 3.28084;
+  var MI_PER_KM = 0.621371;
+
+  var DEFAULTS = {
+    p_tx: 20, g_tx: 0, l_tx: 0, freq_mhz: 2400, g_rx: 0, l_rx: 0,
+    l_fade: 0, l_misc: 0, p_rx: -95, n_exp: 2
+  };
+
+  var el = function (id) { return document.getElementById(id); };
+  var numIds = ["p_tx", "g_tx", "l_tx", "freq_mhz", "g_rx", "l_rx", "l_fade", "l_misc", "p_rx"];
+  var canvas = el("plot");
+  var ctx = canvas.getContext("2d");
+
+  function maxPathLoss(v) {
+    return v.p_tx + v.g_tx + v.g_rx - v.l_tx - v.l_rx - v.l_fade - v.l_misc - v.p_rx;
+  }
+
+  function distanceKmFromPl(pl, freqMhz, n, model) {
+    if (pl < 0 || !(freqMhz > 0) || !(n > 0)) return null;
+    var logTerm, distKm;
+    if (model === "1m") {
+      // PL(d) = (20log10(f) - 27.55) + 10n*log10(d_m)
+      logTerm = (pl - 20 * Math.log10(freqMhz) + 27.55) / (10 * n);
+      distKm = Math.pow(10, logTerm) / 1000;
+    } else {
+      // PL(d) = 20log10(f) + 10n*log10(d_km) + 32.44
+      logTerm = (pl - 20 * Math.log10(freqMhz) - 32.44) / (10 * n);
+      distKm = Math.pow(10, logTerm);
+    }
+    return isFinite(distKm) ? distKm : null;
+  }
+
+  function readInputs() {
+    var v = {};
+    for (var i = 0; i < numIds.length; i++) {
+      var raw = el(numIds[i]).value.trim();
+      var num = raw === "" ? NaN : Number(raw);
+      if (!isFinite(num)) return null;
+      v[numIds[i]] = num;
+    }
+    v.n = Number(el("n_exp").value);
+    v.model = document.querySelector('input[name="model"]:checked').value;
+    v.xScale = document.querySelector('input[name="xscale"]:checked').value;
+    v.yScale = document.querySelector('input[name="yscale"]:checked').value;
+    return v;
+  }
+
+  function fmt(value, decimals) {
+    if (value === null || !isFinite(value)) return "—";
+    if (value !== 0 && (Math.abs(value) >= 1e9 || Math.abs(value) < 1e-4)) {
+      return value.toExponential(2);
+    }
+    return value.toLocaleString(undefined, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  function setResults(distKm) {
+    if (distKm === null) {
+      el("out_km").textContent = "—";
+      el("out_m").textContent = "—";
+      el("out_mi").textContent = "—";
+      el("out_ft").textContent = "—";
+      return;
+    }
+    el("out_km").textContent = fmt(distKm, 2);
+    el("out_m").textContent = fmt(distKm * 1000, 2);
+    el("out_mi").textContent = fmt(distKm * MI_PER_KM, 2);
+    el("out_ft").textContent = fmt(distKm * FT_PER_KM, 2);
+  }
+
+  function showMessage(id, text) {
+    var node = el(id);
+    if (text) {
+      node.textContent = text;
+      node.hidden = false;
+    } else {
+      node.textContent = "";
+      node.hidden = true;
+    }
+  }
+
+  // ---- Plot helpers -------------------------------------------------------
+
+  function linearTicks(min, max, target) {
+    var span = max - min;
+    if (!isFinite(span) || span <= 0) return [min];
+    var rawStep = span / target;
+    var mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+    var norm = rawStep / mag;
+    var step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10) * mag;
+    var ticks = [];
+    for (var v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) {
+      ticks.push(Math.abs(v) < step * 1e-6 ? 0 : v);
+    }
+    return ticks;
+  }
+
+  function logTicks(min, max) {
+    var ticks = [];
+    var start = Math.floor(Math.log10(min));
+    var end = Math.ceil(Math.log10(max));
+    var decades = end - start;
+    var e, m, v;
+    if (decades <= 2) {
+      // Few decades: add intra-decade ticks so short ranges (e.g. n = 2..10) stay readable.
+      var mults = decades <= 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 2, 5];
+      for (e = start; e <= end; e++) {
+        for (m = 0; m < mults.length; m++) {
+          v = mults[m] * Math.pow(10, e);
+          if (v >= min * 0.999 && v <= max * 1.001) ticks.push(v);
+        }
+      }
+    } else {
+      var stride = Math.max(1, Math.ceil(decades / 8));
+      for (e = start; e <= end; e += stride) {
+        v = Math.pow(10, e);
+        if (v >= min * 0.999 && v <= max * 1.001) ticks.push(v);
+      }
+    }
+    return ticks.length ? ticks : [min, max];
+  }
+
+  function tickLabel(value) {
+    if (value === 0) return "0";
+    var abs = Math.abs(value);
+    if (abs >= 1e6 || abs < 1e-3) {
+      var exp = Math.floor(Math.log10(abs));
+      var mant = value / Math.pow(10, exp);
+      return Math.abs(mant - 1) < 1e-9 ? "1e" + exp : value.toExponential(1);
+    }
+    return value.toLocaleString(undefined, { maximumFractionDigits: 3 });
+  }
+
+  function drawPlot(state) {
+    var cssWidth = canvas.clientWidth || 640;
+    var cssHeight = 420;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssWidth * dpr);
+    canvas.height = Math.round(cssHeight * dpr);
+    canvas.style.height = cssHeight + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    ctx.font = "12px system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    ctx.textBaseline = "middle";
+
+    var margin = { top: 38, right: 18, bottom: 52, left: 78 };
+    var plotW = Math.max(10, cssWidth - margin.left - margin.right);
+    var plotH = cssHeight - margin.top - margin.bottom;
+
+    // Title
+    ctx.fillStyle = "#1b1f23";
+    ctx.textAlign = "center";
+    ctx.font = "600 14px system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+    ctx.fillText("Impact of Path Loss Exponent on Range", margin.left + plotW / 2, 16);
+    ctx.font = "12px system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+
+    if (!state || !state.points || !state.points.length) {
+      ctx.fillStyle = "#57606a";
+      ctx.fillText("No data to plot.", margin.left + plotW / 2, margin.top + plotH / 2);
+      return;
+    }
+
+    var xLog = state.xScale === "log";
+    var yLog = state.yScale === "log";
+    var points = state.points;
+
+    var xMin = 2, xMax = 10;
+    var yValues = [];
+    for (var i = 0; i < points.length; i++) {
+      if (!yLog || points[i].y > 0) yValues.push(points[i].y);
+    }
+    if (state.currentY !== null && isFinite(state.currentY) && (!yLog || state.currentY > 0)) {
+      yValues.push(state.currentY);
+    }
+    if (!yValues.length) yValues = [MIN_POSITIVE_VALUE];
+
+    var yMin = Math.min.apply(null, yValues);
+    var yMax = Math.max.apply(null, yValues);
+
+    if (yLog) {
+      if (yMin <= 0) yMin = MIN_POSITIVE_VALUE;
+      if (yMax <= yMin) yMax = yMin * 10;
+      yMin = Math.pow(10, Math.floor(Math.log10(yMin)));
+      yMax = Math.pow(10, Math.ceil(Math.log10(yMax)));
+    } else {
+      var span = yMax - yMin;
+      if (span <= 0) span = Math.abs(yMax) || 1;
+      yMin = yMin - span * 0.05;
+      yMax = yMax + span * 0.05;
+    }
+
+    function sx(x) {
+      var t = xLog
+        ? (Math.log10(x) - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin))
+        : (x - xMin) / (xMax - xMin);
+      return margin.left + t * plotW;
+    }
+    function sy(y) {
+      var t;
+      if (yLog) {
+        var v = y > 0 ? y : yMin;
+        t = (Math.log10(v) - Math.log10(yMin)) / (Math.log10(yMax) - Math.log10(yMin));
+      } else {
+        t = (y - yMin) / (yMax - yMin);
+      }
+      return margin.top + plotH - t * plotH;
+    }
+
+    var xTicks = xLog ? logTicks(xMin, xMax) : linearTicks(xMin, xMax, 8);
+    var yTicks = yLog ? logTicks(yMin, yMax) : linearTicks(yMin, yMax, 6);
+
+    // Grid + tick labels
+    ctx.strokeStyle = "#d7dbe0";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.fillStyle = "#57606a";
+
+    ctx.textAlign = "center";
+    for (var xi = 0; xi < xTicks.length; xi++) {
+      var px = sx(xTicks[xi]);
+      if (px < margin.left - 0.5 || px > margin.left + plotW + 0.5) continue;
+      ctx.beginPath();
+      ctx.moveTo(px, margin.top);
+      ctx.lineTo(px, margin.top + plotH);
+      ctx.stroke();
+      ctx.fillText(tickLabel(xTicks[xi]), px, margin.top + plotH + 16);
+    }
+
+    ctx.textAlign = "right";
+    for (var yi = 0; yi < yTicks.length; yi++) {
+      var py = sy(yTicks[yi]);
+      if (py < margin.top - 0.5 || py > margin.top + plotH + 0.5) continue;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, py);
+      ctx.lineTo(margin.left + plotW, py);
+      ctx.stroke();
+      ctx.fillText(tickLabel(yTicks[yi]), margin.left - 8, py);
+    }
+    ctx.setLineDash([]);
+
+    // Axes frame
+    ctx.strokeStyle = "#8a9099";
+    ctx.strokeRect(margin.left, margin.top, plotW, plotH);
+
+    // Axis titles
+    ctx.fillStyle = "#1b1f23";
+    ctx.textAlign = "center";
+    ctx.fillText("FSPL Path Loss Exponent (n)", margin.left + plotW / 2, margin.top + plotH + 36);
+    ctx.save();
+    ctx.translate(16, margin.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Maximum Distance (ft)", 0, 0);
+    ctx.restore();
+
+    // Curve (clipped to the axes box)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(margin.left, margin.top, plotW, plotH);
+    ctx.clip();
+
+    ctx.strokeStyle = "#1f77b4";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    var started = false;
+    for (var p = 0; p < points.length; p++) {
+      var pt = points[p];
+      if (yLog && !(pt.y > 0)) { started = false; continue; }
+      var cx = sx(pt.x), cy = sy(pt.y);
+      if (!started) { ctx.moveTo(cx, cy); started = true; } else { ctx.lineTo(cx, cy); }
+    }
+    ctx.stroke();
+
+    // Current operating point
+    if (state.currentY !== null && isFinite(state.currentY) && (!yLog || state.currentY > 0)) {
+      ctx.fillStyle = "#d62728";
+      ctx.beginPath();
+      ctx.arc(sx(state.currentN), sy(state.currentY), 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Legend
+    var legend = [{ color: "#1f77b4", text: "Max Distance vs. FSPL Exponent", line: true }];
+    if (state.currentY !== null && isFinite(state.currentY)) {
+      legend.push({
+        color: "#d62728",
+        text: "Current: " + fmt(state.currentY, 0) + " ft",
+        line: false
+      });
+    }
+    ctx.textAlign = "left";
+    var lw = 0;
+    for (var li = 0; li < legend.length; li++) {
+      lw = Math.max(lw, ctx.measureText(legend[li].text).width);
+    }
+    var boxW = lw + 40;
+    var boxH = legend.length * 18 + 10;
+    var boxX = margin.left + plotW - boxW - 8;
+    var boxY = margin.top + 8;
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.strokeStyle = "#d7dbe0";
+    ctx.lineWidth = 1;
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+    for (var lj = 0; lj < legend.length; lj++) {
+      var itemY = boxY + 14 + lj * 18;
+      ctx.strokeStyle = legend[lj].color;
+      ctx.fillStyle = legend[lj].color;
+      if (legend[lj].line) {
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(boxX + 8, itemY);
+        ctx.lineTo(boxX + 28, itemY);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(boxX + 18, itemY, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#1b1f23";
+      ctx.fillText(legend[lj].text, boxX + 34, itemY);
+    }
+  }
+
+  // ---- Main update loop ---------------------------------------------------
+
+  var lastState = null;
+
+  function update() {
+    var v = readInputs();
+    el("n_val").textContent = Number(el("n_exp").value).toFixed(1);
+
+    if (!v) {
+      showMessage("error-msg", "Please ensure all parameters are valid numbers.");
+      showMessage("warn-msg", "");
+      setResults(null);
+      lastState = null;
+      drawPlot(null);
+      return;
+    }
+    if (v.freq_mhz <= 0) {
+      showMessage("error-msg", "Frequency must be a positive number.");
+      showMessage("warn-msg", "");
+      setResults(null);
+      lastState = null;
+      drawPlot(null);
+      return;
+    }
+    showMessage("error-msg", "");
+
+    var pl = maxPathLoss(v);
+    var distKm = distanceKmFromPl(pl, v.freq_mhz, v.n, v.model);
+
+    if (distKm === null) {
+      showMessage("warn-msg", "Link cannot be established with the current parameters (Path Loss < 0).");
+      setResults(null);
+      lastState = null;
+      drawPlot(null);
+      return;
+    }
+    showMessage("warn-msg", "");
+    setResults(distKm);
+
+    var points = [];
+    for (var i = 0; i < 100; i++) {
+      var nVal = 2 + (8 * i) / 99;
+      var dKm = distanceKmFromPl(pl, v.freq_mhz, nVal, v.model);
+      var ft = (dKm !== null && dKm > 0) ? dKm * FT_PER_KM : MIN_POSITIVE_VALUE;
+      points.push({ x: nVal, y: ft });
+    }
+
+    lastState = {
+      points: points,
+      currentN: v.n,
+      currentY: distKm * FT_PER_KM,
+      xScale: v.xScale,
+      yScale: v.yScale
+    };
+    drawPlot(lastState);
+  }
+
+  document.getElementById("params").addEventListener("input", update);
+  document.getElementById("params").addEventListener("change", update);
+  document.getElementById("plot-settings").addEventListener("change", update);
+  document.getElementById("params").addEventListener("submit", function (e) { e.preventDefault(); });
+
+  el("reset-btn").addEventListener("click", function () {
+    for (var key in DEFAULTS) {
+      if (Object.prototype.hasOwnProperty.call(DEFAULTS, key)) el(key).value = DEFAULTS[key];
+    }
+    document.querySelector('input[name="model"][value="1m"]').checked = true;
+    document.querySelector('input[name="xscale"][value="linear"]').checked = true;
+    document.querySelector('input[name="yscale"][value="linear"]').checked = true;
+    update();
+  });
+
+  window.addEventListener("resize", function () { drawPlot(lastState); });
+
+  update();
+})();
+</script>
+</body>
+</html>

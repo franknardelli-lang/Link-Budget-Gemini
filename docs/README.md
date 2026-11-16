@@ -80,9 +80,20 @@ You can also trigger a manual deployment:
 ```
 docs/
 ├── index.html                    # Main documentation page
+├── calculator.html               # Standalone interactive calculator (self-contained, works offline)
 ├── staticwebapp.config.json      # Azure Static Web Apps configuration
 └── README.md                     # This file
 ```
+
+## Standalone calculator
+
+`calculator.html` is a single self-contained file: all markup, styling, calculation logic
+and plotting are inline, with no external scripts, fonts or network calls. It mirrors the
+Streamlit app in [`app.py`](../app.py) and can be:
+
+- opened by double-clicking it locally (no Python, no install, no server), or
+- emailed/shared as a single attachment, or
+- reached on the deployed site at `/calculator.html`.
 
 ## Monitoring
 
