@@ -13,7 +13,7 @@ Key Features:
   * Log-distance Model (1m reference) - for indoor/short-range analysis
 - Interactive visualization showing impact of path loss exponent on range
 - Multiple unit conversions (kilometers, meters, miles, feet)
-- Adjustable FSPL (Free Space Path Loss) exponent for different environments
+- Adjustable path loss exponent (n) for different environments; n = 2 is free space (FSPL)
 
 How to Run:
     streamlit run app.py
@@ -24,10 +24,11 @@ Usage:
    - Operating frequency
    - Receiver sensitivity
    - Fade margin and miscellaneous losses
-   - FSPL exponent (2.0 for free space, higher for obstructed environments)
+   - Path loss exponent (2.0 for free space, lower for indoor line-of-sight,
+     higher for obstructed environments)
 2. Select the appropriate path loss model
 3. View calculated maximum distances in multiple units
-4. Observe the interactive plot showing distance vs. FSPL exponent relationship
+4. Observe the interactive plot showing distance vs. path loss exponent relationship
 
 Requirements:
 - streamlit
@@ -43,24 +44,39 @@ import matplotlib.pyplot as plt
 # Minimum positive value for log scale compatibility
 MIN_POSITIVE_VALUE = 1e-10
 
+# Path loss exponent range offered by the UI and swept by the plot.
+# 1.5 reaches the indoor line-of-sight (waveguiding) regime, n = 2 is free space.
+N_MIN = 1.5
+N_MAX = 10.0
+
+# Free-space loss unit constants, exact to 4 dp: 20*log10(4*pi*d*f/c) for d in km / m and f in MHz.
+# They must differ by exactly 60 dB so both reference distances agree at n = 2.
+FSPL_CONST_KM = 32.4478
+FSPL_CONST_M = -27.5522
+
 def calculate_max_path_loss(p_tx, g_tx, l_tx, g_rx, l_rx, l_fade, l_misc, p_rx_sensitivity):
     """Calculates the maximum allowable path loss in the link budget."""
     return p_tx + g_tx + g_rx - l_tx - l_rx - l_fade - l_misc - p_rx_sensitivity
 
 def calculate_distance_from_pl(max_path_loss, freq_mhz, n, model_choice):
-    """Calculates distance based on path loss, frequency, exponent, and model choice."""
+    """Calculates distance based on path loss, frequency, exponent, and model choice.
+
+    Uses the log-distance model PL(d) = FSPL(d0) + 10*n*log10(d/d0), where FSPL(d0)
+    is free-space loss at the reference distance. The exponent scales only the
+    distance ratio beyond d0, never the frequency term.
+    """
     if max_path_loss < 0:
         return None, None
 
     try:
         if model_choice == "1m":
-            # Using 1-meter reference model: PL(d) = (20log10(f) - 27.55) + 10n*log10(d_m)
-            log_term = (max_path_loss - 20 * math.log10(freq_mhz) + 27.55) / (10 * n)
+            # d0 = 1 m: PL(d) = (20log10(f) + FSPL_CONST_M) + 10n*log10(d_m)
+            log_term = (max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_M) / (10 * n)
             distance_m = 10 ** log_term
             distance_km = distance_m / 1000
         else: # "1km"
-            # Using 1-km reference model: PL(d) = 20log10(f) + 10n*log10(d_km) + 32.44
-            log_term = (max_path_loss - 20 * math.log10(freq_mhz) - 32.44) / (10 * n)
+            # d0 = 1 km: PL(d) = (20log10(f) + FSPL_CONST_KM) + 10n*log10(d_km)
+            log_term = (max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_KM) / (10 * n)
             distance_km = 10 ** log_term
 
         return distance_km
@@ -71,7 +87,7 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
     """Creates and returns a matplotlib figure of distance vs. FSPL exponent."""
     fig, ax = plt.subplots(figsize=(6, 4))
 
-    n_values = np.linspace(2.0, 10.0, 100)
+    n_values = np.linspace(N_MIN, N_MAX, 100)
     distances_ft = []
 
     for n_val in n_values:
@@ -82,11 +98,11 @@ def create_plot(max_path_loss, freq_mhz, current_n, current_dist_ft, model_choic
             # Use MIN_POSITIVE_VALUE for log scale compatibility
             distances_ft.append(MIN_POSITIVE_VALUE)
 
-    ax.plot(n_values, distances_ft, label="Max Distance vs. FSPL Exponent")
+    ax.plot(n_values, distances_ft, label="Max Distance vs. Path Loss Exponent")
     if current_dist_ft is not None:
         ax.plot(current_n, current_dist_ft, 'ro', label=f'Current: {current_dist_ft:,.0f} ft')
 
-    ax.set_xlabel("FSPL Path Loss Exponent (n)")
+    ax.set_xlabel("Path Loss Exponent (n)")
     ax.set_ylabel("Maximum Distance (ft)")
     ax.set_title("Impact of Path Loss Exponent on Range")
     
@@ -141,7 +157,7 @@ l_fade = st.sidebar.number_input("Fade Margin (dB)", value=0.0, step=0.2, format
 l_misc = st.sidebar.number_input("Misc. Losses (dB)", value=0.0, step=0.2, format="%.1f")
 p_rx_sensitivity = st.sidebar.number_input("Receiver Sensitivity (dBm)", value=-95.0, step=0.2, format="%.1f")
 
-n = st.sidebar.slider("FSPL Exponent (n)", min_value=2.0, max_value=10.0, value=2.0, step=0.1)
+n = st.sidebar.slider("Path Loss Exponent (n)", min_value=N_MIN, max_value=N_MAX, value=2.0, step=0.1)
 
 st.sidebar.subheader("Path Loss Model")
 model_choice_label = st.sidebar.radio(
@@ -200,6 +216,7 @@ st.info("""
 **How to Use:**
 - Adjust the parameters in the sidebar on the left.
 - The results and plot will update automatically.
-- **FSPL Exponent (n):** Represents how quickly the signal fades. `2.0` is for ideal free space. Higher values represent more obstructed environments (e.g., urban, indoors).
-- **Path Loss Model:** Choose the reference distance for the path loss calculation. The 1km model is common for outdoor/long-range links, while the 1m model is often used for indoor/short-range analysis.
+- **Path Loss Exponent (n):** Represents how quickly the signal fades with distance. `2.0` is free space (true FSPL); `1.6-1.8` indoor line-of-sight (corridor waveguiding); `2.7-3.5` urban cellular; `3-5` shadowed urban; `4-6` indoor obstructed.
+- **Path Loss Model:** Choose the reference distance `d0` for the log-distance model `PL(d) = FSPL(d0) + 10*n*log10(d/d0)`. The 1km reference is common for outdoor/long-range links, while the 1m reference is often used for indoor/short-range analysis. Both agree exactly at n = 2.
+- **Fade Margin** stays separate from `n`: the exponent sets the mean loss trend with distance, while the fade margin covers variation around that mean (log-normal shadowing, typically 4-12 dB, and multipath fading).
 """)

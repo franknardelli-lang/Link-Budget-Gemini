@@ -7,6 +7,17 @@ from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg,
     NavigationToolbar2Tk
 )
+
+# Path loss exponent range offered by the UI and swept by the plot.
+# 1.5 reaches the indoor line-of-sight (waveguiding) regime, n = 2 is free space.
+N_MIN = 1.5
+N_MAX = 10.0
+
+# Free-space loss unit constants, exact to 4 dp: 20*log10(4*pi*d*f/c) for d in km / m and f in MHz.
+# They must differ by exactly 60 dB so both reference distances agree at n = 2.
+FSPL_CONST_KM = 32.4478
+FSPL_CONST_M = -27.5522
+
 class LinkBudgetCalculator(tk.Tk):
     """
     An interactive GUI application for calculating the maximum communication
@@ -98,14 +109,14 @@ class LinkBudgetCalculator(tk.Tk):
 
             row_counter += 1
 
-        # --- FSPL Exponent Slider ---
-        fspl_label = ttk.Label(input_frame, text="FSPL Exponent (2-10)")
+        # --- Path Loss Exponent Slider ---
+        fspl_label = ttk.Label(input_frame, text=f"Path Loss Exponent ({N_MIN:g}-{N_MAX:g})")
         fspl_label.grid(row=row_counter, column=0, sticky="w", padx=5, pady=10)
 
         slider_frame = ttk.Frame(input_frame)
         slider_frame.grid(row=row_counter, column=1, sticky="ew", padx=5, pady=10)
 
-        fspl_slider = ttk.Scale(slider_frame, from_=2.0, to=10.0, orient=tk.HORIZONTAL, variable=self.fspl_exponent_var, command=self._on_slider_change)
+        fspl_slider = ttk.Scale(slider_frame, from_=N_MIN, to=N_MAX, orient=tk.HORIZONTAL, variable=self.fspl_exponent_var, command=self._on_slider_change)
         fspl_slider.pack(side=tk.LEFT, expand=True, fill=tk.X)
 
         self.fspl_value_label = ttk.Label(slider_frame, text=f"{self.fspl_exponent_var.get():.2f}", width=5)
@@ -192,26 +203,26 @@ class LinkBudgetCalculator(tk.Tk):
         """Updates the matplotlib plot with new data."""
         self.ax.clear()
 
-        n_values = np.linspace(2, 10, 100)
+        n_values = np.linspace(N_MIN, N_MAX, 100)
 
         if model_choice == "1m":
-            # 1-meter reference model
-            # d_m = 10 ^ ((PL - 20log10(f) + 27.55) / (10n))
-            log_term_numerator = max_path_loss - 20 * math.log10(freq_mhz) + 27.55
+            # Log-distance model, d0 = 1 m
+            # d_m = 10 ^ ((PL - 20log10(f) - FSPL_CONST_M) / (10n))
+            log_term_numerator = max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_M
             distances_m = 10 ** (log_term_numerator / (10 * n_values))
             distances_km = distances_m / 1000
         else:
-            # 1-km reference model
-            # d_km = 10^((PL - 20log10(f) - 32.44) / (10n))
-            log_term_numerator = max_path_loss - 20 * math.log10(freq_mhz) - 32.44
+            # Log-distance model, d0 = 1 km
+            # d_km = 10^((PL - 20log10(f) - FSPL_CONST_KM) / (10n))
+            log_term_numerator = max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_KM
             distances_km = 10 ** (log_term_numerator / (10 * n_values))
 
         # Convert to feet for plotting
         distances_ft = distances_km * 1000 * 3.28084
 
-        self.ax.plot(n_values, distances_ft, label="Max Distance vs. FSPL Exponent")
+        self.ax.plot(n_values, distances_ft, label="Max Distance vs. Path Loss Exponent")
         self.ax.plot(current_n, current_dist_ft, 'ro') # Mark the current point
-        self.ax.set_xlabel("FSPL Path Loss Exponent (n)")
+        self.ax.set_xlabel("Path Loss Exponent (n)")
         self.ax.set_ylabel("Maximum Distance (ft)")
         self.ax.set_title("Impact of Path Loss Exponent on Range")
         self.ax.grid(True, which='both', linestyle='--')
@@ -239,8 +250,8 @@ class LinkBudgetCalculator(tk.Tk):
             n = self.fspl_exponent_var.get()
             model_choice = self.model_choice_var.get()
 
-            if not (2.0 <= n <= 10.0):
-                messagebox.showerror("Input Error", "FSPL Exponent must be between 2 and 10.")
+            if not (N_MIN <= n <= N_MAX):
+                messagebox.showerror("Input Error", f"Path Loss Exponent must be between {N_MIN:g} and {N_MAX:g}.")
                 return
             if freq_mhz <= 0:
                 messagebox.showerror("Input Error", "Frequency must be a positive number.")
@@ -249,8 +260,8 @@ class LinkBudgetCalculator(tk.Tk):
             # --- Link Budget Calculation ---
             # Received Power = Tx Power + Gains - Losses
             # At max distance, Received Power = Receiver Sensitivity
-            # p_rx_sensitivity = p_tx + g_tx + g_rx - l_tx - l_rx - fspl
-            # Therefore, max allowable path loss (FSPL) is:
+            # p_rx_sensitivity = p_tx + g_tx + g_rx - l_tx - l_rx - path loss
+            # Therefore, max allowable path loss is:
             max_path_loss = p_tx + g_tx + g_rx - l_tx - l_rx - l_fade - l_misc - p_rx_sensitivity
 
             if max_path_loss < 0:
@@ -258,16 +269,17 @@ class LinkBudgetCalculator(tk.Tk):
                     var.set("Link cannot be established.")
                 return
 
-            # --- FSPL to Distance Calculation ---
+            # --- Path Loss to Distance Calculation ---
+            # Log-distance model: PL(d) = FSPL(d0) + 10n*log10(d/d0)
             if model_choice == "1m":
-                # Using 1-meter reference model: PL(d) = (20log10(f) - 27.55) + 10n*log10(d_m)
+                # d0 = 1 m: PL(d) = (20log10(f) + FSPL_CONST_M) + 10n*log10(d_m)
                 # Rearranging for d_m:
-                log_term = (max_path_loss - 20 * math.log10(freq_mhz) + 27.55) / (10 * n)
+                log_term = (max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_M) / (10 * n)
                 current_distance_m = 10 ** log_term
                 current_distance_km = current_distance_m / 1000
             else:
-                # Using 1-km reference model: PL(d) = 20log10(f) + 10n*log10(d_km) + 32.44
-                log_term = (max_path_loss - 20 * math.log10(freq_mhz) - 32.44) / (10 * n)
+                # d0 = 1 km: PL(d) = (20log10(f) + FSPL_CONST_KM) + 10n*log10(d_km)
+                log_term = (max_path_loss - 20 * math.log10(freq_mhz) - FSPL_CONST_KM) / (10 * n)
                 current_distance_km = 10 ** log_term
 
             # --- Unit Conversions ---

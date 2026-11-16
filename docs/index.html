@@ -107,7 +107,7 @@
       \boxed{ \text{FSPL(dB)} = 32.44 + 20\log_{10}(f_{\text{MHz}}) + 20\log_{10}(d_{\text{km}}) }
     \]
   </p>
-  <p class="eqn-label">The constant \(32.44\) is purely a units artifact (km &amp; MHz). It corresponds to the free-space loss at 1&nbsp;km when \(f=1\) MHz.</p>
+  <p class="eqn-label">The constant \(32.44\) is purely a units artifact (km &amp; MHz). It corresponds to the free-space loss at 1&nbsp;km when \(f=1\) MHz. Its exact value is \(32.4478\); the matching constant for a 1&nbsp;m reference is \(-27.5522\), exactly 60&nbsp;dB lower. Using consistently rounded values matters: a mismatched pair makes the two reference distances disagree slightly even at \(n=2\), where they should be identical.</p>
 
   <div class="tip">
     You can equivalently use meters &amp; Hz:

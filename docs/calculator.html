@@ -177,9 +177,9 @@
       </div>
 
       <fieldset class="group">
-        <label for="n_exp" class="small"><strong>FSPL Exponent (n)</strong></label>
+        <label for="n_exp" class="small"><strong>Path Loss Exponent (n)</strong></label>
         <div class="slider-row">
-          <input type="range" id="n_exp" min="2" max="10" step="0.1" value="2" />
+          <input type="range" id="n_exp" min="1.5" max="10" step="0.1" value="2" />
           <span class="slider-val" id="n_val">2.0</span>
         </div>
       </fieldset>
@@ -222,21 +222,24 @@
       </div>
 
       <div class="plot-box">
-        <canvas id="plot" height="420" role="img" aria-label="Plot of maximum distance versus FSPL path loss exponent"></canvas>
+        <canvas id="plot" height="420" role="img" aria-label="Plot of maximum distance versus path loss exponent"></canvas>
       </div>
 
       <div class="info">
         <strong>How to Use:</strong>
         <ul>
           <li>Adjust the parameters on the left &mdash; results and the plot update automatically.</li>
-          <li><strong>FSPL Exponent (n):</strong> how quickly the signal fades. <code>2.0</code> is ideal free space; higher values represent more obstructed environments (urban, indoors).</li>
-          <li><strong>Path Loss Model:</strong> the reference distance used in the path loss equation. The 1 km model is common for outdoor/long-range links; the 1 m model is often used for indoor/short-range analysis.</li>
+          <li><strong>Path Loss Exponent (n):</strong> how quickly the signal fades with distance. <code>2.0</code> is free space (true FSPL); <code>1.6&ndash;1.8</code> indoor line-of-sight (corridor waveguiding); <code>2.7&ndash;3.5</code> urban cellular; <code>3&ndash;5</code> shadowed urban; <code>4&ndash;6</code> indoor obstructed.</li>
+          <li><strong>Path Loss Model:</strong> the reference distance d<sub>0</sub> used by the log-distance model. The 1 km reference is common for outdoor/long-range links; the 1 m reference is often used for indoor/short-range analysis. Both agree exactly at n&nbsp;=&nbsp;2.</li>
+          <li><strong>Fade margin</strong> is kept separate from n: the exponent sets the mean loss trend with distance, while the fade margin covers variation around that mean (log-normal shadowing, typically &sigma;&nbsp;=&nbsp;4&ndash;12 dB, and multipath fading).</li>
         </ul>
       </div>
 
       <footer>
         Max allowable path loss = P<sub>tx</sub> + G<sub>tx</sub> + G<sub>rx</sub> &minus; L<sub>tx</sub> &minus; L<sub>rx</sub> &minus; fade margin &minus; misc. losses &minus; receiver sensitivity.
-        Distance is then solved from the selected path loss model.
+        Distance is then solved from the log-distance model
+        PL(d) = FSPL(d<sub>0</sub>) + 10&middot;n&middot;log<sub>10</sub>(d/d<sub>0</sub>), where FSPL(d<sub>0</sub>) is free-space loss at the
+        reference distance (n&nbsp;=&nbsp;2). The exponent scales only the distance ratio beyond d<sub>0</sub>, never the frequency term.
       </footer>
     </section>
   </div>
@@ -251,6 +254,11 @@
   var FT_PER_KM = 1000 * 3.28084;
   var MI_PER_KM = 0.621371;
 
+  // Free-space loss unit constants, exact to 4 dp: 20*log10(4*pi*d*f/c) for d in km / m and f in MHz.
+  // They must differ by exactly 60 dB so both reference distances agree at n = 2.
+  var FSPL_CONST_KM = 32.4478;
+  var FSPL_CONST_M = -27.5522;
+
   var DEFAULTS = {
     p_tx: 20, g_tx: 0, l_tx: 0, freq_mhz: 2400, g_rx: 0, l_rx: 0,
     l_fade: 0, l_misc: 0, p_rx: -95, n_exp: 2
@@ -261,6 +269,10 @@
   var canvas = el("plot");
   var ctx = canvas.getContext("2d");
 
+  // Plot sweep bounds follow the slider so the two can never drift apart.
+  var N_MIN = parseFloat(el("n_exp").min);
+  var N_MAX = parseFloat(el("n_exp").max);
+
   function maxPathLoss(v) {
     return v.p_tx + v.g_tx + v.g_rx - v.l_tx - v.l_rx - v.l_fade - v.l_misc - v.p_rx;
   }
@@ -269,12 +281,12 @@
     if (pl < 0 || !(freqMhz > 0) || !(n > 0)) return null;
     var logTerm, distKm;
     if (model === "1m") {
-      // PL(d) = (20log10(f) - 27.55) + 10n*log10(d_m)
-      logTerm = (pl - 20 * Math.log10(freqMhz) + 27.55) / (10 * n);
+      // Log-distance model, d0 = 1 m: PL(d) = FSPL(1 m) + 10n*log10(d_m)
+      logTerm = (pl - 20 * Math.log10(freqMhz) - FSPL_CONST_M) / (10 * n);
       distKm = Math.pow(10, logTerm) / 1000;
     } else {
-      // PL(d) = 20log10(f) + 10n*log10(d_km) + 32.44
-      logTerm = (pl - 20 * Math.log10(freqMhz) - 32.44) / (10 * n);
+      // Log-distance model, d0 = 1 km: PL(d) = FSPL(1 km) + 10n*log10(d_km)
+      logTerm = (pl - 20 * Math.log10(freqMhz) - FSPL_CONST_KM) / (10 * n);
       distKm = Math.pow(10, logTerm);
     }
     return isFinite(distKm) ? distKm : null;
@@ -431,7 +443,7 @@
     var yLog = state.yScale === "log";
     var points = state.points;
 
-    var xMin = 2, xMax = 10;
+    var xMin = N_MIN, xMax = N_MAX;
     var yValues = [];
     for (var i = 0; i < points.length; i++) {
       if (!yLog || points[i].y > 0) yValues.push(points[i].y);
@@ -512,7 +524,7 @@
     // Axis titles
     ctx.fillStyle = COLORS.fg;
     ctx.textAlign = "center";
-    ctx.fillText("FSPL Path Loss Exponent (n)", margin.left + plotW / 2, margin.top + plotH + 36);
+    ctx.fillText("Path Loss Exponent (n)", margin.left + plotW / 2, margin.top + plotH + 36);
     ctx.save();
     ctx.translate(16, margin.top + plotH / 2);
     ctx.rotate(-Math.PI / 2);
@@ -547,7 +559,7 @@
     ctx.restore();
 
     // Legend
-    var legend = [{ color: COLORS.curve, text: "Max Distance vs. FSPL Exponent", line: true }];
+    var legend = [{ color: COLORS.curve, text: "Max Distance vs. Path Loss Exponent", line: true }];
     if (state.currentY !== null && isFinite(state.currentY)) {
       legend.push({
         color: COLORS.point,
@@ -630,7 +642,7 @@
 
     var points = [];
     for (var i = 0; i < 100; i++) {
-      var nVal = 2 + (8 * i) / 99;
+      var nVal = N_MIN + ((N_MAX - N_MIN) * i) / 99;
       var dKm = distanceKmFromPl(pl, v.freq_mhz, nVal, v.model);
       var ft = (dKm !== null && dKm > 0) ? dKm * FT_PER_KM : MIN_POSITIVE_VALUE;
       points.push({ x: nVal, y: ft });
