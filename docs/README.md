@@ -95,6 +95,9 @@ Streamlit app in [`app.py`](../app.py) and can be:
 - emailed/shared as a single attachment, or
 - reached on the deployed site at `/calculator.html`.
 
+It opens in dark mode by default and has a light/dark toggle in the header. The choice is
+remembered per browser via `localStorage`, and falls back to dark where storage is blocked.
+
 ## Monitoring
 
 View deployment status:

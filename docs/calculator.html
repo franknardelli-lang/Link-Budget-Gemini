@@ -7,18 +7,59 @@
   <meta name="description" content="A self-contained, offline interactive link budget calculator. Computes maximum communication distance from transmit power, antenna gains, cable losses, frequency, fade margin and receiver sensitivity using the classic 1 km or log-distance 1 m path loss model." />
   <style>
     :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --fg: #e6edf3;
+      --muted: #9aa4b2;
+      --accent: #2f81f7;
+      --accent-fg: #fff;
+      --border: #30363d;
+      --panel: #161b22;
+      --surface: #0f141b;
+      --input-bg: #0d1117;
+      --input-border: #4b5563;
+      --warn-bg: #2a1e0e;
+      --warn-border: #6b4a16;
+      --error-bg: #2b1416;
+      --error-border: #7c2d32;
+      --info-bg: #11212e;
+      --info-border: #1f4f6f;
+      --plot-grid: #30363d;
+      --plot-axis: #6e7681;
+      --plot-curve: #58a6ff;
+      --plot-point: #ff7b72;
+      --plot-legend-bg: rgba(15, 20, 27, 0.88);
+    }
+    [data-theme="light"] {
+      color-scheme: light;
+      --bg: #fff;
       --fg: #1b1f23;
       --muted: #57606a;
       --accent: #0068c9;
+      --accent-fg: #fff;
       --border: #e5e7eb;
       --panel: #f6f8fa;
+      --surface: #fff;
+      --input-bg: #fff;
+      --input-border: #cfd4da;
+      --warn-bg: #fff7ed;
+      --warn-border: #fed7aa;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --info-bg: #f0f9ff;
+      --info-border: #bae6fd;
+      --plot-grid: #d7dbe0;
+      --plot-axis: #8a9099;
+      --plot-curve: #1f77b4;
+      --plot-point: #d62728;
+      --plot-legend-bg: rgba(255, 255, 255, 0.88);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--fg);
-      background: #fff;
+      background: var(--bg);
     }
     .wrap { max-width: 1120px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
     header { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; justify-content: space-between; }
@@ -27,10 +68,10 @@
     h3 { font-size: 1rem; margin: 0 0 .75rem; }
     .small { color: var(--muted); font-size: .92rem; }
     .btn {
-      display: inline-block; background: var(--accent); color: #fff; padding: .5rem 1rem;
+      display: inline-block; background: var(--accent); color: var(--accent-fg); padding: .5rem 1rem;
       border-radius: .25rem; text-decoration: none; font-size: .95rem; border: none; cursor: pointer;
     }
-    .btn.secondary { background: #fff; color: var(--fg); border: 1px solid var(--border); }
+    .btn.secondary { background: var(--surface); color: var(--fg); border: 1px solid var(--border); }
     .btn:hover { filter: brightness(1.05); }
     .layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1.5rem; margin-top: 1.25rem; }
     @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
@@ -39,7 +80,7 @@
     .field label { font-size: .9rem; }
     input[type="number"] {
       width: 100%; padding: .35rem .45rem; font: inherit; font-size: .9rem;
-      border: 1px solid #cfd4da; border-radius: 6px; background: #fff; color: inherit;
+      border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: inherit;
     }
     input[type="range"] { width: 100%; }
     .slider-row { display: grid; grid-template-columns: 1fr 56px; align-items: center; gap: .5rem; }
@@ -49,18 +90,18 @@
     .radio { display: flex; align-items: center; gap: .4rem; font-size: .9rem; margin: .25rem 0; }
     .results { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
     @media (max-width: 620px) { .results { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    .metric { border: 1px solid var(--border); border-radius: 8px; padding: .7rem .8rem; background: #fff; }
+    .metric { border: 1px solid var(--border); border-radius: 8px; padding: .7rem .8rem; background: var(--surface); }
     .metric .label { color: var(--muted); font-size: .85rem; }
     .metric .value { font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; word-break: break-all; }
     .scales { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 1rem 0 .5rem; }
     .scales fieldset legend { font-size: .9rem; font-weight: 600; padding: 0; }
     .scale-opts { display: flex; gap: .9rem; margin-top: .25rem; }
-    .plot-box { border: 1px solid var(--border); border-radius: 8px; padding: .5rem; background: #fff; }
+    .plot-box { border: 1px solid var(--border); border-radius: 8px; padding: .5rem; background: var(--surface); }
     canvas { width: 100%; display: block; }
-    .msg { padding: .75rem 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #fed7aa; background: #fff7ed; }
-    .msg.error { border-color: #fecaca; background: #fef2f2; }
+    .msg { padding: .75rem 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid var(--warn-border); background: var(--warn-bg); }
+    .msg.error { border-color: var(--error-border); background: var(--error-bg); }
     .msg[hidden] { display: none; }
-    .info { padding: .9rem 1rem; border-radius: 8px; border: 1px solid #bae6fd; background: #f0f9ff; margin-top: 1.5rem; }
+    .info { padding: .9rem 1rem; border-radius: 8px; border: 1px solid var(--info-border); background: var(--info-bg); margin-top: 1.5rem; }
     .info ul { margin: .5rem 0 0; padding-left: 1.2rem; }
     .info li { margin: .3rem 0; }
     footer { color: var(--muted); font-size: .9rem; margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem; }
@@ -69,6 +110,14 @@
       .btn { display: none; }
     }
   </style>
+  <script>
+    // Applied before first paint so a saved light preference does not flash dark.
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem("lbc-theme"); } catch (e) { /* file:// or blocked storage */ }
+      document.documentElement.setAttribute("data-theme", saved === "light" ? "light" : "dark");
+    })();
+  </script>
 </head>
 <body>
 <div class="wrap">
@@ -80,6 +129,7 @@
     </div>
     <div>
       <a class="btn" href="https://victorious-glacier-05b5d831e.2.azurestaticapps.net" target="_blank" rel="noopener noreferrer">📚 Documentation</a>
+      <button type="button" class="btn secondary" id="theme-btn" aria-pressed="true">🌙 Dark</button>
       <button type="button" class="btn secondary" id="reset-btn">Reset defaults</button>
     </div>
   </header>
@@ -334,6 +384,21 @@
   }
 
   function drawPlot(state) {
+    var css = getComputedStyle(document.documentElement);
+    var color = function (name, fallback) {
+      var v = css.getPropertyValue(name).trim();
+      return v || fallback;
+    };
+    var COLORS = {
+      fg: color("--fg", "#1b1f23"),
+      muted: color("--muted", "#57606a"),
+      grid: color("--plot-grid", "#d7dbe0"),
+      axis: color("--plot-axis", "#8a9099"),
+      curve: color("--plot-curve", "#1f77b4"),
+      point: color("--plot-point", "#d62728"),
+      legendBg: color("--plot-legend-bg", "rgba(255,255,255,0.88)")
+    };
+
     var cssWidth = canvas.clientWidth || 640;
     var cssHeight = 420;
     var dpr = window.devicePixelRatio || 1;
@@ -350,14 +415,14 @@
     var plotH = cssHeight - margin.top - margin.bottom;
 
     // Title
-    ctx.fillStyle = "#1b1f23";
+    ctx.fillStyle = COLORS.fg;
     ctx.textAlign = "center";
     ctx.font = "600 14px system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
     ctx.fillText("Impact of Path Loss Exponent on Range", margin.left + plotW / 2, 16);
     ctx.font = "12px system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
     if (!state || !state.points || !state.points.length) {
-      ctx.fillStyle = "#57606a";
+      ctx.fillStyle = COLORS.muted;
       ctx.fillText("No data to plot.", margin.left + plotW / 2, margin.top + plotH / 2);
       return;
     }
@@ -412,10 +477,10 @@
     var yTicks = yLog ? logTicks(yMin, yMax) : linearTicks(yMin, yMax, 6);
 
     // Grid + tick labels
-    ctx.strokeStyle = "#d7dbe0";
+    ctx.strokeStyle = COLORS.grid;
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
-    ctx.fillStyle = "#57606a";
+    ctx.fillStyle = COLORS.muted;
 
     ctx.textAlign = "center";
     for (var xi = 0; xi < xTicks.length; xi++) {
@@ -441,11 +506,11 @@
     ctx.setLineDash([]);
 
     // Axes frame
-    ctx.strokeStyle = "#8a9099";
+    ctx.strokeStyle = COLORS.axis;
     ctx.strokeRect(margin.left, margin.top, plotW, plotH);
 
     // Axis titles
-    ctx.fillStyle = "#1b1f23";
+    ctx.fillStyle = COLORS.fg;
     ctx.textAlign = "center";
     ctx.fillText("FSPL Path Loss Exponent (n)", margin.left + plotW / 2, margin.top + plotH + 36);
     ctx.save();
@@ -460,7 +525,7 @@
     ctx.rect(margin.left, margin.top, plotW, plotH);
     ctx.clip();
 
-    ctx.strokeStyle = "#1f77b4";
+    ctx.strokeStyle = COLORS.curve;
     ctx.lineWidth = 2;
     ctx.beginPath();
     var started = false;
@@ -474,7 +539,7 @@
 
     // Current operating point
     if (state.currentY !== null && isFinite(state.currentY) && (!yLog || state.currentY > 0)) {
-      ctx.fillStyle = "#d62728";
+      ctx.fillStyle = COLORS.point;
       ctx.beginPath();
       ctx.arc(sx(state.currentN), sy(state.currentY), 4.5, 0, Math.PI * 2);
       ctx.fill();
@@ -482,10 +547,10 @@
     ctx.restore();
 
     // Legend
-    var legend = [{ color: "#1f77b4", text: "Max Distance vs. FSPL Exponent", line: true }];
+    var legend = [{ color: COLORS.curve, text: "Max Distance vs. FSPL Exponent", line: true }];
     if (state.currentY !== null && isFinite(state.currentY)) {
       legend.push({
-        color: "#d62728",
+        color: COLORS.point,
         text: "Current: " + fmt(state.currentY, 0) + " ft",
         line: false
       });
@@ -499,8 +564,8 @@
     var boxH = legend.length * 18 + 10;
     var boxX = margin.left + plotW - boxW - 8;
     var boxY = margin.top + 8;
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
-    ctx.strokeStyle = "#d7dbe0";
+    ctx.fillStyle = COLORS.legendBg;
+    ctx.strokeStyle = COLORS.grid;
     ctx.lineWidth = 1;
     ctx.fillRect(boxX, boxY, boxW, boxH);
     ctx.strokeRect(boxX, boxY, boxW, boxH);
@@ -519,7 +584,7 @@
         ctx.arc(boxX + 18, itemY, 4, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.fillStyle = "#1b1f23";
+      ctx.fillStyle = COLORS.fg;
       ctx.fillText(legend[lj].text, boxX + 34, itemY);
     }
   }
@@ -595,6 +660,24 @@
     document.querySelector('input[name="yscale"][value="linear"]').checked = true;
     update();
   });
+
+  var themeBtn = el("theme-btn");
+
+  function applyTheme(theme) {
+    var dark = theme !== "light";
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    themeBtn.textContent = dark ? "🌙 Dark" : "☀️ Light";
+    themeBtn.setAttribute("aria-pressed", dark ? "true" : "false");
+    themeBtn.title = dark ? "Switch to light mode" : "Switch to dark mode";
+    try { localStorage.setItem("lbc-theme", dark ? "dark" : "light"); } catch (e) { /* storage blocked */ }
+    drawPlot(lastState);
+  }
+
+  themeBtn.addEventListener("click", function () {
+    applyTheme(document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light");
+  });
+
+  applyTheme(document.documentElement.getAttribute("data-theme"));
 
   window.addEventListener("resize", function () { drawPlot(lastState); });
 
